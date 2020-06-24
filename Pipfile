@@ -7,6 +7,7 @@ verify_ssl = true
 pycodestyle = "*"
 black = "*"
 autopep8 = "*"
+v = {editable = true,version = "*"}
 
 [packages]
 django = "*"
@@ -15,6 +16,7 @@ django-treenode = "*"
 drf-nested-routers = "*"
 httpie = "*"
 django-cors-headers = "*"
+django-environ = "*"
 
 [requires]
 python_version = "3.8"

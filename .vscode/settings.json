@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\Users\\Ramba\\.virtualenvs\\instaclone-api-q8BAEbbr\\Scripts\\python.exe",
+    "python.pythonPath": "/home/thendo/.local/share/virtualenvs/InstaCloneBackEnd-RR3lJhYB/bin/python",
     "python.linting.pylintEnabled": false,
     "python.linting.pycodestyleEnabled": true,
     "python.linting.enabled": true,
