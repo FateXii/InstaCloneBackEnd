@@ -7,33 +7,64 @@ from django.contrib.auth.models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email',
+                  'first_name', 'last_name', 'password']
+        extra_kwargs = {'password': {'write_only': True}}
+
+
+class PhoneNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhoneNumber
+        fields = ['country_code', 'number']
+
+
+class SubProfile(serializers.ModelSerializer):
+    user = UserSerializer(required=True)
+    phone_number = PhoneNumberSerializer(allow_null=True, required=False)
+
+    class Meta:
+        model = Profile
+        fields = ['user', 'bio', 'is_private', 'phone_number']
+        depth = 1
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
-    # phone_number = NumberSerializer(required=False)
+    phone_number = PhoneNumberSerializer(allow_null=True, required=False)
+    following = SubProfile(many=True, read_only=True,
+                           required=False, allow_null=True)
+    followed_by = SubProfile(many=True, read_only=True,
+                             required=False, allow_null=True)
+    follow_requests_received = SubProfile(many=True, read_only=True,
+                                          required=False, allow_null=True)
+    follow_requests_submitted = SubProfile(many=True, read_only=True,
+                                           required=False, allow_null=True)
 
     class Meta:
         model = Profile
-        fields = ['user', 'bio', 'phone_number']
-        depth = 2
+        fields = ['user', 'bio', 'is_private',
+                  'following', 'followed_by',
+                  'phone_number',
+                  'follow_requests_received',
+                  'follow_requests_submitted']
+        depth = 1
 
     def create(self, validated_data):
 
-        user_data = **validated_data.pop('user')
-        user = User.objects.create(user_data)
-        phone_data = **validated_data.pop('phone_number')
+        user_data = validated_data.pop('user')
+        phone = None
 
-        profile = Profile.objects.create(user=user, **validated_data)
+        if 'phone_number'in validated_data.keys():
+            phone_data = validated_data.pop('phone_number')
+            phone = PhoneNumber.objects.create(**phone_data)
 
-        phone = PhoneNumber.objects.create(profile=profile, phone_data)
+        user = user = User(
+            email=user_data['email'],
+            username=user_data['username']
+        )
+        user.set_password(user_data['password'])
+        user.save()
+
+        profile = Profile.objects.create(
+            user=user, phone_number=phone, **validated_data)
         return profile
-
-
-class NumberSerializer(serializers.ModelSerializer):
-    profile = ProfileSerializer(required=True)
-
-    class Meta:
-        model = PhoneNumber
-        fields = ['profile', 'country_code', 'number']

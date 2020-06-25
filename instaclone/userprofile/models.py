@@ -1,18 +1,50 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
+
+
+class PhoneNumber(models.Model):
+
+    country_code = models.CharField(max_length=10)
+    number = models.CharField(max_length=30)
 
 
 class Profile(models.Model):
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    phone_number = models.OneToOneField(
+        PhoneNumber, on_delete=models.CASCADE,
+        null=True, blank=True)
+
     bio = models.CharField(max_length=255)
     is_private = models.BooleanField(default=False)
-    following = models.ForeignKey('self')
-    followed_by = models.ForeignKey('self')
-    follow_requests = models.ForeignKey('self')
+
+    profiles_followed = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        related_name='following',
+        null=True, blank=True)
+
+    requests_received = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        related_name='follow_requests_received',
+        null=True, blank=True)
+
+    profiles_following = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        related_name='followed_by',
+        null=True, blank=True)
+
+    requests_submitted = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        related_name='follow_requests_submitted',
+        null=True, blank=True)
 
 
-class PhoneNumber(models.Model):
-    profile = models.OneToOneField(Profile, on_delete=models.CASCADE)
-    country_code = models.CharField(max_length=10)
-    number = models.CharField(max_length=30)
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_auth_token(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance)
