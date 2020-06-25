@@ -9,6 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email',
                   'first_name', 'last_name', 'password']
+        read_only = ['id']
         extra_kwargs = {'password': {'write_only': True}}
 
 
@@ -18,35 +19,59 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
         fields = ['country_code', 'number']
 
 
-class SubProfile(serializers.ModelSerializer):
-    user = UserSerializer(required=True)
+class BaseProfileSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField(
+        allow_null=True, required=False)
+    last_name = serializers.SerializerMethodField(
+        allow_null=True, required=False)
+
     phone_number = PhoneNumberSerializer(allow_null=True, required=False)
 
     class Meta:
         model = Profile
-        fields = ['user', 'bio', 'is_private', 'phone_number']
-        depth = 1
+        fields = ['user', 'username', 'email',
+                  'first_name', 'last_name', 'phone_number']
+
+    def get_username(self, profile):
+        return profile.user.username
+
+    def get_first_name(self, profile):
+        return profile.user.first_name
+
+    def get_last_name(self, profile):
+        return profile.user.last_name
+
+    def get_email(self, profile):
+        return profile.user.email
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(required=True)
-    phone_number = PhoneNumberSerializer(allow_null=True, required=False)
-    following = SubProfile(many=True, read_only=True,
-                           required=False, allow_null=True)
-    followed_by = SubProfile(many=True, read_only=True,
-                             required=False, allow_null=True)
-    follow_requests_received = SubProfile(many=True, read_only=True,
-                                          required=False, allow_null=True)
-    follow_requests_submitted = SubProfile(many=True, read_only=True,
-                                           required=False, allow_null=True)
+class ProfileSerializer(BaseProfileSerializer):
+    user = UserSerializer(required=True, write_only=True)
+
+    following = BaseProfileSerializer(
+        many=True, read_only=True,
+        required=False, allow_null=True)
+    followed_by = BaseProfileSerializer(
+        many=True, read_only=True,
+        required=False, allow_null=True)
+    follow_requests_received = BaseProfileSerializer(
+        many=True, read_only=True,
+        required=False, allow_null=True)
+    follow_requests_submitted = BaseProfileSerializer(
+        many=True, read_only=True,
+        required=False, allow_null=True)
 
     class Meta:
         model = Profile
-        fields = ['user', 'bio', 'is_private',
+        fields = ['user', 'username', 'email',
+                  'first_name', 'last_name', 'bio', 'is_private',
                   'following', 'followed_by',
                   'phone_number',
                   'follow_requests_received',
                   'follow_requests_submitted']
+        extra_kwargs = {'user': {'write_only': True}}
         depth = 1
 
     def create(self, validated_data):
@@ -58,7 +83,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             phone_data = validated_data.pop('phone_number')
             phone = PhoneNumber.objects.create(**phone_data)
 
-        user = user = User(
+        user = User(
             email=user_data['email'],
             username=user_data['username']
         )
