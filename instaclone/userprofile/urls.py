@@ -12,5 +12,5 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('api/profiles/login', views.obtain_auth_token)
+    path('api/profiles/login', views.obtain_auth_token, name='login')
 ]
