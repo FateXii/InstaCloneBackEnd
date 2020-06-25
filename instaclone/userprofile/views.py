@@ -39,15 +39,15 @@ class ProfileViewSet(viewsets.ModelViewSet):
         current_profile = self.request.user.profile
         profile_to_unfollow = Profile.objects.get(pk=pk)
 
-        if current_profile.id == profile_to_unfollow.id:
+        if current_profile.following.get(pk=pk):
+            profile_to_unfollow.followed_by.remove(current_profile)
+            current_profile.following.remove(profile_to_unfollow)
             return Response(
-                {'error': 'Cannot follow self'})
-
-        profile_to_unfollow.followed_by.remove(current_profile)
-        current_profile.following.remove(profile_to_unfollow)
+                {'status': 'Unfollowed {}.'.format(
+                    profile_to_follow.user.username)})
         return Response(
-            {'status': 'Unfollowed {}.'.format(
-                profile_to_follow.user.username)})
+            {'error': 'Not following @{}'.format(
+                current_profile.following.get(pk=pk).user.username)})
 
     @action(
         detail=True, methods=['post'],
