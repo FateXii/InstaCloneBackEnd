@@ -3,6 +3,7 @@ from .serializers import ProfileSerializer
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+# from rest_framework import status
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -18,19 +19,26 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
         if current_profile.id == profile_to_follow.id:
             return Response(
-                {'error': 'Cannot follow self'})
+                data={
+                    'error': 'Cannot follow self'
+                },
+                status=status.HTTP_406_NOT_ACCEPTABLE
+            )
         if not profile_to_follow.is_private:
             profile_to_follow.followed_by.add(current_profile)
             current_profile.following.add(profile_to_follow)
             return Response(
-                {'status': 'following {}.'.format(
-                    profile_to_follow.user.username)})
+                data={'status': 'Following @{}.'.format(
+                    profile_to_follow.user.username)},
+                status=status.HTTP_200_OK
+            )
 
         profile_to_follow.follow_requests_received.add(current_profile)
         current_profile.follow_requests_submitted.add(profile_to_follow)
         return Response(
-            {'status': 'request to follow {} submitted.'.format(
-                profile_to_follow.user.username)})
+            data={'status': 'request to follow @{} submitted.'.format(
+                profile_to_follow.user.username)},
+            status=status.HTTP_200_OK)
 
     @action(
         detail=True, methods=['post'],
@@ -43,11 +51,14 @@ class ProfileViewSet(viewsets.ModelViewSet):
             profile_to_unfollow.followed_by.remove(current_profile)
             current_profile.following.remove(profile_to_unfollow)
             return Response(
-                {'status': 'Unfollowed {}.'.format(
-                    profile_to_follow.user.username)})
+                data={'status': 'Unfollowed @{}.'.format(
+                    profile_to_unfollow.user.username)},
+                status=status.HTTP_200_OK)
         return Response(
-            {'error': 'Not following @{}'.format(
-                current_profile.following.get(pk=pk).user.username)})
+            data={'error': 'Not following @{}'.format(
+                current_profile.following.get(pk=pk).user.username)},
+            status=status.HTTP_406_NOT_ACCEPTABLE
+        )
 
     @action(
         detail=True, methods=['post'],
@@ -64,5 +75,6 @@ class ProfileViewSet(viewsets.ModelViewSet):
         profile_requesting_follow.follow_requests_submitted.remove(
             current_profile)
         return Response(
-            {'status': 'Follow request by {} accepted.'.format(
-                profile_requesting_follow.user.username)})
+            data={'status': 'Follow request by @{} accepted.'.format(
+                profile_requesting_follow.user.username)},
+            status=status.HTTP_200_OK)
