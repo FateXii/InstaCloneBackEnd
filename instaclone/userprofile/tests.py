@@ -167,10 +167,6 @@ class AccountTests(APITestCase):
             Profile.objects.get().following.count(), 0)
         self.assertEqual(
             Profile.objects.get().follow_requests_received.count(), 0)
-        self.assertEqual(
-            Profile.objects.get().followed_by.count(), 0)
-        self.assertEqual(
-            Profile.objects.get().follow_requests_submitted.count(), 0)
 
     def test_login(self):
         """
