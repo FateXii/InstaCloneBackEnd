@@ -2,4 +2,7 @@ from rest_framework import permissions
 
 
 class ProfilePermissions(permissions.BasePermission):
-    pass
+    message = 'Adding customers not allowed.'
+
+    def has_permission(self, request, view):
+        pass

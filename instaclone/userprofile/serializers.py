@@ -55,11 +55,7 @@ class ProfileSerializer(BaseProfileSerializer):
         many=True, read_only=True,
         required=False, allow_null=True)
 
-<<<<<<< HEAD
     followed_by = serializers.SerializerMethodField()
-
-=======
->>>>>>> 0f54d2c3fba6885a8064648ce9b56d690e859b45
     follow_requests_received = BaseProfileSerializer(
         many=True, read_only=True,
         required=False, allow_null=True)
