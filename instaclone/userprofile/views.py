@@ -63,7 +63,6 @@ class ProfileViewSet(viewsets.ModelViewSet):
         current_profile = self.request.user.profile
         profile_requesting_follow = Profile.objects.get(pk=pk)
 
-<<<<<<< HEAD
         if current_profile.follow_requests_received.filter(id=pk):
 
             profile_requesting_follow.following.add(current_profile)
@@ -75,12 +74,6 @@ class ProfileViewSet(viewsets.ModelViewSet):
                     profile_requesting_follow.user.username)},
                 status=status.HTTP_200_OK)
 
-=======
-        profile_requesting_follow.following.add(current_profile)
-
-        current_profile.follow_requests_received.remove(
-            profile_requesting_follow)
->>>>>>> 0f54d2c3fba6885a8064648ce9b56d690e859b45
         return Response(
             data={
                 'error': 'Follow request not found'

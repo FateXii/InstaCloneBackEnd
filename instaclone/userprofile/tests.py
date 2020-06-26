@@ -151,7 +151,7 @@ profiles = [
 ]
 
 
-class AccountTests(APITestCase):
+class ProfileTest(APITestCase):
     def test_create_profile(self):
         """
         Ensure we can create a new profile object.
@@ -172,6 +172,7 @@ class AccountTests(APITestCase):
         """
         Ensure profile can login
         """
+        # Create profile
         url = reverse('profiles-list')
         data = profiles[5]
         response = self.client.post(url, data, format='json')
@@ -180,14 +181,20 @@ class AccountTests(APITestCase):
         self.assertEqual(
             Profile.objects.get().user.username, data['user']['username'])
 
+        # Login Attempt
         username = data['user']['username']
         password = data['user']['password']
         data = {'username': username, 'password': password}
         url = reverse('login')
         response = self.client.post(url, data, format='json')
+        # Assert Logged in
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+        # Check token
         content = json.loads(response.content)
         self.assertEqual(len(content.keys()), 1)
         self.assertEqual(
             list(content)[0].lower(), 'token')
+
+        self.assertEqual(
+            content['token'], Profile.objects.get(id=1).user.auth_token.key)

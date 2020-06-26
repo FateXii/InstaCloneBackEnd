@@ -50,15 +50,15 @@ class BaseProfileSerializer(serializers.ModelSerializer):
 
 class ProfileSerializer(BaseProfileSerializer):
     user = UserSerializer(required=True, write_only=True)
-
     following = BaseProfileSerializer(
         many=True, read_only=True,
         required=False, allow_null=True)
 
-    followed_by = serializers.SerializerMethodField()
     follow_requests_received = BaseProfileSerializer(
         many=True, read_only=True,
         required=False, allow_null=True)
+
+    followed_by = serializers.SerializerMethodField()
     follow_requests_submitted = serializers.SerializerMethodField()
 
     class Meta:
