@@ -24,24 +24,12 @@ class Profile(models.Model):
     is_private = models.BooleanField(default=False)
 
     profiles_followed = models.ForeignKey(
-        'self', on_delete=models.SET_NULL,
-        related_name='following',
-        null=True, blank=True)
+        'self', on_delete=models.DO_NOTHING,
+        blank=True, null=True, related_name='following')
 
-    requests_received = models.ForeignKey(
-        'self', on_delete=models.SET_NULL,
-        related_name='follow_requests_received',
-        null=True, blank=True)
-
-    profiles_following = models.ForeignKey(
-        'self', on_delete=models.SET_NULL,
-        related_name='followed_by',
-        null=True, blank=True)
-
-    requests_submitted = models.ForeignKey(
-        'self', on_delete=models.SET_NULL,
-        related_name='follow_requests_submitted',
-        null=True, blank=True)
+    follow_requests = models.ForeignKey(
+        'self', on_delete=models.DO_NOTHING,
+        blank=True, null=True, related_name='follow_requests_received')
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

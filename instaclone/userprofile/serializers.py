@@ -31,8 +31,9 @@ class BaseProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['user', 'username', 'email',
+        fields = ['id', 'user', 'username', 'email',
                   'first_name', 'last_name', 'phone_number']
+        read_only = ['id']
 
     def get_username(self, profile):
         return profile.user.username
@@ -53,26 +54,38 @@ class ProfileSerializer(BaseProfileSerializer):
     following = BaseProfileSerializer(
         many=True, read_only=True,
         required=False, allow_null=True)
-    followed_by = BaseProfileSerializer(
-        many=True, read_only=True,
-        required=False, allow_null=True)
+
     follow_requests_received = BaseProfileSerializer(
         many=True, read_only=True,
         required=False, allow_null=True)
-    follow_requests_submitted = BaseProfileSerializer(
-        many=True, read_only=True,
-        required=False, allow_null=True)
+    follow_requests_submitted = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
-        fields = ['user', 'username', 'email',
+        fields = ['id', 'user', 'username', 'email',
                   'first_name', 'last_name', 'bio', 'is_private',
                   'following', 'followed_by',
                   'phone_number',
                   'follow_requests_received',
                   'follow_requests_submitted']
+        read_only = ['id']
         extra_kwargs = {'user': {'write_only': True}}
         depth = 1
+
+    def get_followed_by(self, working_profile):
+        profiles = Profile.objects.filter(following__id=working_profile.id)
+        return BaseProfileSerializer(
+            profiles,
+            many=True, read_only=True,
+            required=False, allow_null=True).data
+
+    def get_follow_requests_submitted(self, working_profile):
+        profiles = Profile.objects.filter(
+            follow_requests_received__id=working_profile.id)
+        return BaseProfileSerializer(
+            profiles,
+            many=True, read_only=True,
+            required=False, allow_null=True).data
 
     def create(self, validated_data):
 
