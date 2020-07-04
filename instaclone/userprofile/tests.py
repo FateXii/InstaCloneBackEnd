@@ -9,12 +9,11 @@ import json
 
 profiles = [
     {
-        "user": {
-            "username": "user1",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
+
+        "username": "user1",
+        "first_name": "first_name1",
+        "email": "email@mail.com",
+        "password": "pass1234",
         "bio": "This is my bio",
         "phone_number": {
             "country_code": "27",
@@ -23,12 +22,11 @@ profiles = [
         "is_private": True
     },
     {
-        "user": {
-            "username": "user2",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
+
+        "username": "user2",
+        "first_name": "first_name1",
+        "email": "email@mail.com",
+        "password": "pass1234",
         "bio": "This is my bio",
         "phone_number": {
             "country_code": "27",
@@ -37,12 +35,11 @@ profiles = [
         "is_private": True
     },
     {
-        "user": {
-            "username": "user3",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
+
+        "username": "user3",
+        "first_name": "first_name1",
+        "email": "email@mail.com",
+        "password": "pass1234",
         "bio": "This is my bio",
         "phone_number": {
             "country_code": "27",
@@ -51,12 +48,11 @@ profiles = [
         "is_private": True
     },
     {
-        "user": {
-            "username": "user4",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
+
+        "username": "user7",
+        "first_name": "first_name1",
+        "email": "email@mail.com",
+        "password": "pass1234",
         "bio": "This is my bio",
         "phone_number": {
             "country_code": "27",
@@ -65,12 +61,11 @@ profiles = [
         "is_private": True
     },
     {
-        "user": {
-            "username": "user5",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
+
+        "username": "user6",
+        "first_name": "first_name1",
+        "email": "email@mail.com",
+        "password": "pass1234",
         "bio": "This is my bio",
         "phone_number": {
             "country_code": "27",
@@ -79,74 +74,30 @@ profiles = [
         "is_private": True
     },
     {
-        "user": {
-            "username": "user6",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
+
+        "username": "user4",
+        "first_name": "first_name1",
+        "email": "email@mail.com",
+        "password": "pass1234",
         "bio": "This is my bio",
         "phone_number": {
             "country_code": "27",
             "number": "712414451"
         },
-        "is_private": False
+        "is_private": True
     },
     {
-        "user": {
-            "username": "user7",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
+
+        "username": "user5",
+        "first_name": "first_name1",
+        "email": "email@mail.com",
+        "password": "pass1234",
         "bio": "This is my bio",
         "phone_number": {
             "country_code": "27",
             "number": "712414451"
         },
-        "is_private": False
-    },
-    {
-        "user": {
-            "username": "user8",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
-        "bio": "This is my bio",
-        "phone_number": {
-            "country_code": "27",
-            "number": "712414451"
-        },
-        "is_private": False
-    },
-    {
-        "user": {
-            "username": "user9",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
-        "bio": "This is my bio",
-        "phone_number": {
-            "country_code": "27",
-            "number": "712414451"
-        },
-        "is_private": False
-    },
-    {
-        "user": {
-            "username": "user0",
-            "first_name": "first_name1",
-            "email": "email@mail.com",
-            "password": "pass1234"
-        },
-        "bio": "This is my bio",
-        "phone_number": {
-            "country_code": "27",
-            "number": "712414451"
-        },
-        "is_private": False
+        "is_private": True
     },
 ]
 
@@ -162,7 +113,7 @@ class ProfileTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Profile.objects.count(), 1)
         self.assertEqual(
-            Profile.objects.get().user.username, data['user']['username'])
+            Profile.objects.get().user.username, data['username'])
         self.assertEqual(
             Profile.objects.get().following.count(), 0)
         self.assertEqual(
@@ -179,11 +130,11 @@ class ProfileTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Profile.objects.count(), 1)
         self.assertEqual(
-            Profile.objects.get().user.username, data['user']['username'])
+            Profile.objects.get().user.username, data['username'])
 
         # Login Attempt
-        username = data['user']['username']
-        password = data['user']['password']
+        username = data['username']
+        password = data['password']
         data = {'username': username, 'password': password}
         url = reverse('login')
         response = self.client.post(url, data, format='json')

@@ -20,19 +20,26 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
 
 
 class BaseProfileSerializer(serializers.ModelSerializer):
-    username = serializers.SerializerMethodField()
-    email = serializers.SerializerMethodField()
-    first_name = serializers.SerializerMethodField(
+    username = serializers.CharField(source='user.username')
+    email = serializers.EmailField(source='user.email')
+    first_name = serializers.CharField(
+        source='user.first_name',
         allow_null=True, required=False)
-    last_name = serializers.SerializerMethodField(
+
+    last_name = serializers.CharField(
+        source='user.last_name',
         allow_null=True, required=False)
+
+    password = serializers.CharField(
+        source='user.password', required=True, write_only=True)
 
     phone_number = PhoneNumberSerializer(allow_null=True, required=False)
 
     class Meta:
         model = Profile
-        fields = ['id', 'user', 'username', 'email',
-                  'first_name', 'last_name', 'phone_number']
+        fields = ['id', 'username', 'email',
+                  'first_name', 'last_name', 'phone_number', 'password']
+        extra_kwargs = {'password': {'write_only': True}}
         read_only = ['id']
 
     def get_username(self, profile):
@@ -49,7 +56,6 @@ class BaseProfileSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(BaseProfileSerializer):
-    user = UserSerializer(required=True, write_only=True)
     following = BaseProfileSerializer(
         many=True, read_only=True,
         required=False, allow_null=True)
@@ -63,14 +69,16 @@ class ProfileSerializer(BaseProfileSerializer):
 
     class Meta:
         model = Profile
-        fields = ['id', 'user', 'username', 'email',
+        fields = ['id',  'username', 'email', 'password',
                   'first_name', 'last_name', 'bio', 'is_private',
                   'following', 'followed_by',
                   'phone_number',
                   'follow_requests_received',
                   'follow_requests_submitted']
         read_only = ['id']
-        extra_kwargs = {'user': {'write_only': True}}
+        extra_kwargs = {
+            'user': {'write_only': True}
+        }
         depth = 1
 
     def get_followed_by(self, working_profile):
@@ -90,19 +98,24 @@ class ProfileSerializer(BaseProfileSerializer):
 
     def create(self, validated_data):
 
-        user_data = validated_data.pop('user')
+        user_data = {}
+        password = ''
+        for key, value in validated_data.pop('user').items():
+            if key in ['username', 'email',
+                       'first_name', 'last_name', 'password']:
+                user_data[key] = value
         phone = None
 
-        if 'phone_number'in validated_data.keys():
+        if 'phone_number' in validated_data.keys():
             phone_data = validated_data.pop('phone_number')
             phone = PhoneNumber.objects.create(**phone_data)
 
-        user = User(
-            email=user_data['email'],
-            username=user_data['username']
+        user = User.objects.create_user(
+            username=user_data.pop('username'),
+            email=user_data.pop('email'),
+            password=user_data.pop('password'),
+            ** user_data
         )
-        user.set_password(user_data['password'])
-        user.save()
 
         profile = Profile.objects.create(
             user=user, phone_number=phone, **validated_data)
