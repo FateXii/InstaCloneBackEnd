@@ -32,7 +32,8 @@ class Profile(models.Model):
         blank=True, null=True, related_name='follow_requests_received')
 
 
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_auth_token(sender, instance=None, created=False, **kwargs):
-    if created:
-        Token.objects.create(user=instance)
+# @receiver(post_save, sender=settings.AUTH_USER_MODEL)
+# def create_auth_token(sender, instance=None, created=False, **kwargs):
+#     """Create auth token on user/profile creation"""
+#     if created:
+#         Token.objects.create(user=instance)
