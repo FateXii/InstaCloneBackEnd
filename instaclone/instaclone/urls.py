@@ -5,7 +5,8 @@ from instaclone import views
 
 urlpatterns = [
     re_path('api/', include('userprofile.urls')),
-    path(r'api/login/', auth_views.obtain_auth_token, name='login'),
+    # path(r'api/login/', auth_views.obtain_auth_token, name='login'),
+    path(r'api/login/', views.login, name='login'),
     path(r'api/logout/', views.logout, name='logout'),
     path('admin/', admin.site.urls),
 ]

@@ -1,7 +1,31 @@
 from rest_framework import serializers
 from .models import Profile, PhoneNumber
+from django.contrib.auth import authenticate
 # from comments.serializers import CommentSerializer
 from django.contrib.auth.models import User
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(style={'input_type:password', })
+
+    def validate(self, values):
+        username = values.get('username')
+        password = values.get('password')
+        message = None
+
+        if username and password:
+            user = authenticate(username=username, password=password)
+
+            if not user:
+                message = "Incorrect credentials"
+        else:
+            message = "Please provide login credentials"
+
+        if message:
+            raise serializers.ValidationError(message, code='authentication')
+        values['profile'] = user.profile
+        return values
 
 
 class UserSerializer(serializers.ModelSerializer):
