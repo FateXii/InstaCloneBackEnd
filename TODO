@@ -1,0 +1,22 @@
+Instaclone Backend:
+✔ Userprofiles: @created(20-07-15 14:57) @done(20-07-15 14:57)
+This app handles the creation deletion and updating of users and their profiles.
+
+☐ Posts:@created(20-07-15 14:58)
+    ☐ Finish profile app:  @created(20-07-17 01:12)
+        ☐ Write the CRUD tests @created(20-07-17 01:13)
+            ✔ Create test @created(20-07-17 01:13) @done(20-07-17 01:13)
+            ✔ Read test @created(20-07-17 01:14) @done(20-07-17 01:14)
+            ☐ Update test @created(20-07-17 01:14)
+            ☐ Delete test @created(20-07-17 01:14)
+        ☐ Put, patch, and delete methods should require auth @created(20-07-17 01:14)
+        
+
+    ☐ Create a posts model @created(20-07-15 14:58)
+        This model should contain:
+            ✔ The profile as a foreign key @created(20-07-15 15:05) @done(20-07-15 15:05)
+            ✔ Url to the image:@created(20-07-15 15:05) @done(20-07-15 15:19)
+                ☐ Allow multiple values. @created(20-07-15 15:11)
+            ☐ Likes; one to many relationship with user profiles. @created(20-07-15 15:18)
+            ☐ Shares; one to many relationship with the user profile. @created(20-07-15 15:26)
+        

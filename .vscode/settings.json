@@ -1,7 +1,9 @@
 {
-    "python.pythonPath": "/home/thendo/.local/share/virtualenvs/InstaCloneBackEnd-RR3lJhYB/bin/python",
-    "python.linting.pylintEnabled": false,
-    "python.linting.pycodestyleEnabled": true,
-    "python.linting.enabled": true,
-    "editor.formatOnSave": true
+  "python.pythonPath": "/home/thendo/.local/share/virtualenvs/InstaCloneBackEnd-RR3lJhYB/bin/python",
+  "python.linting.pylintEnabled": false,
+  "python.linting.pycodestyleEnabled": true,
+  "python.linting.enabled": true,
+  "editor.formatOnSave": true,
+  "todo.timekeeping.created.enabled": true,
+  "cSpell.words": ["unfollow", "unfollowed"]
 }
