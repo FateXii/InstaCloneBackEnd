@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
 
     # Custom Apps
-    # 'posts',
+    'posts',
     # 'comments',
     'userprofile',
 
