@@ -15,7 +15,9 @@ class PhoneNumber(models.Model):
 class Profile(models.Model):
 
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='profile')
     phone_number = models.OneToOneField(
         PhoneNumber, on_delete=models.CASCADE,
         null=True, blank=True)

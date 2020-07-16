@@ -1,8 +1,9 @@
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework import viewsets, permissions, status
 from .models import Profile
 from .serializers import ProfileSerializer
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from posts.serializers import PostSerializer
 # from rest_framework import status
 
 
@@ -73,12 +74,36 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 data={'status': 'Follow request by @{} accepted.'.format(
                     profile_requesting_follow.user.username)},
                 status=status.HTTP_200_OK)
-
         return Response(
             data={
                 'error': 'Follow request not found'
             },
             status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    @action(
+        detail=True,
+        methods=['get']
+    )
+    def get_posts(self, request, pk):
+        current_profile = self.request.user.profile
+
+        is_authenticated = self.request.user.is_authenticated
+        requested_profile = Profile.objects.get(pk=pk)
+        is_following = bool(
+            requested_profile.following.filter(
+                id=current_profile.id).count())
+        is_current_user = (int(pk) == current_profile.id) and is_authenticated
+
+        if is_current_user or (requested_profile.is_private and is_following):
+            raw_posts = requested_profile.posts.all()
+            posts = PostSerializer(raw_posts, many=True).data
+            return Response(
+                data={'posts': posts},
+                status=status.HTTP_200_OK)
+        else:
+            return Response(
+                data={'error': 'profile is private'},
+                status=status.HTTP_401_UNAUTHORIZED)
 
     def reject_follow_request(self, request,  pk):
         current_profile = self.request.user.profile

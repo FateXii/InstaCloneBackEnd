@@ -12,8 +12,10 @@ from userprofile.serializers import LoginSerializer, BaseProfileSerializer
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
-    request.user.auth_token.delete()
-    token = None
+    user = User.objects.get(id=request.user.id)
+    user.auth_token.delete()
+    if user.auth_token.key:
+        return Response(status=420, data={})
     return Response(status=status.HTTP_200_OK, data={
         'token': None,
         'profile': None,
@@ -21,13 +23,15 @@ def logout(request):
     })
 
 
-@api_view(['POST'])
+@ api_view(['POST'])
 def login(request):
     serializer = LoginSerializer(
-        data=request.data, context={'request', request})
+        data=request.data,
+        context={'request', request}
+    )
     serializer.is_valid(raise_exception=True)
     profile = serializer.validated_data['profile']
-    token, created = Token.objects.get_or_create(user=profile.user.id)
+    token, created = Token.objects.get_or_create(user=profile.user)
     return Response(status=status.HTTP_200_OK, data={
         'token': token.key,
         'profile': BaseProfileSerializer(profile).data,

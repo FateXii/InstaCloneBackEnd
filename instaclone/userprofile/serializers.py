@@ -24,6 +24,7 @@ class LoginSerializer(serializers.Serializer):
 
         if message:
             raise serializers.ValidationError(message, code='authentication')
+
         values['profile'] = user.profile
         return values
 
@@ -121,7 +122,6 @@ class ProfileSerializer(BaseProfileSerializer):
             required=False, allow_null=True).data
 
     def create(self, validated_data):
-
         user_data = {}
         password = ''
         for key, value in validated_data.pop('user').items():
