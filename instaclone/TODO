@@ -1,9 +1,8 @@
 Instaclone Backend:
 ✔ Userprofiles: @created(20-07-15 14:57) @done(20-07-15 14:57)
-This app handles the creation deletion and updating of users and their profiles.
-
-☐ Profiles:@created(20-07-15 14:58)
+    This app handles the creation deletion and updating of users and their profiles.
     ☐ Finish profile app:  @created(20-07-17 01:12)
+        ✔ Login, Logout @created(20-07-17 01:22) @done(20-07-17 01:23)
         ☐ Write the CRUD tests @created(20-07-17 01:13)
             ✔ Create test @created(20-07-17 01:13) @done(20-07-17 01:13)
             ✔ Read test @created(20-07-17 01:14) @done(20-07-17 01:14)
