@@ -1,0 +1,15 @@
+{
+    "python.pythonPath": "/home/thendo/.local/share/virtualenvs/instaclone-COh_6T6O/bin/python",
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": false,
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.banditEnabled": false,
+    "python.linting.mypyEnabled": false,
+    "python.linting.pylamaEnabled": false,
+    "python.linting.pydocstyleEnabled": false,
+    "cSpell.words": [
+        "unfollow",
+        "unfollowed"
+    ]
+}
