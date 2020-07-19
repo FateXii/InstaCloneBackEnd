@@ -7,6 +7,8 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from userprofile.serializers import LoginSerializer, BaseProfileSerializer
+from django.utils import timezone
+import pytz
 
 
 @api_view(['POST'])
@@ -32,6 +34,8 @@ def login(request):
     serializer.is_valid(raise_exception=True)
     profile = serializer.validated_data['profile']
     token, created = Token.objects.get_or_create(user=profile.user)
+    profile.user.last_login = timezone.now()
+    profile.user.save()
     return Response(status=status.HTTP_200_OK, data={
         'token': token.key,
         'profile': BaseProfileSerializer(profile).data,
