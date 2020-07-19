@@ -11,6 +11,19 @@ class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
 
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view
+        requires.
+        """
+        if self.action in ['update', 'partial_update', 'destroy']:
+            permission_classes = [permissions.IsAuthenticated]
+
+        else:
+            permission_classes = []
+
+        return [permission() for permission in permission_classes]
+
     @action(
         detail=True, methods=['post'],
         permission_classes=[permissions.IsAuthenticated])
@@ -105,6 +118,11 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 data={'error': 'profile is private'},
                 status=status.HTTP_401_UNAUTHORIZED)
 
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
     def reject_follow_request(self, request,  pk):
         current_profile = self.request.user.profile
         profile_requesting_follow = Profile.objects.get(pk=pk)
