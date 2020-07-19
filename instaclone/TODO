@@ -6,7 +6,7 @@ Instaclone Backend:
         ☐ Write the CRUD tests @created(20-07-17 01:13)
             ✔ Create test @created(20-07-17 01:13) @done(20-07-17 01:13)
             ✔ Read test @created(20-07-17 01:14) @done(20-07-17 01:14)
-            ☐ Update test @created(20-07-17 01:14)
+            ✔ Update test @created(20-07-17 01:14) @done(20-07-19 15:20)
             ☐ Delete test @created(20-07-17 01:14)
         ☐ Put, patch, and delete methods should require auth @created(20-07-17 01:14)
 
