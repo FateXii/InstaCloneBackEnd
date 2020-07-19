@@ -62,7 +62,7 @@ class BaseProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['id', 'username', 'email',
+        fields = ['id', 'bio', 'username', 'email',
                   'first_name', 'last_name', 'phone_number', 'password']
         extra_kwargs = {'password': {'write_only': True}}
         read_only = ['id']
@@ -81,6 +81,7 @@ class BaseProfileSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(BaseProfileSerializer):
+    bio = serializers.CharField()
     following = BaseProfileSerializer(
         many=True, read_only=True,
         required=False, allow_null=True)
@@ -106,28 +107,11 @@ class ProfileSerializer(BaseProfileSerializer):
         }
         depth = 1
 
-    def get_followed_by(self, working_profile):
-        profiles = Profile.objects.filter(following__id=working_profile.id)
-        return BaseProfileSerializer(
-            profiles,
-            many=True, read_only=True,
-            required=False, allow_null=True).data
-
-    def get_follow_requests_submitted(self, working_profile):
-        profiles = Profile.objects.filter(
-            follow_requests_received__id=working_profile.id)
-        return BaseProfileSerializer(
-            profiles,
-            many=True, read_only=True,
-            required=False, allow_null=True).data
-
     def create(self, validated_data):
         user_data = {}
         password = ''
         for key, value in validated_data.pop('user').items():
-            if key in ['username', 'email',
-                       'first_name', 'last_name', 'password']:
-                user_data[key] = value
+            user_data[key] = value
         phone = None
 
         if 'phone_number' in validated_data.keys():
@@ -138,9 +122,69 @@ class ProfileSerializer(BaseProfileSerializer):
             username=user_data.pop('username'),
             email=user_data.pop('email'),
             password=user_data.pop('password'),
-            ** user_data
+            **user_data
         )
 
         profile = Profile.objects.create(
             user=user, phone_number=phone, **validated_data)
         return profile
+
+    def get_followed_by(self, working_profile):
+        profiles = Profile.objects.filter(
+            following__id=working_profile.id)
+
+        serialized_followers = BaseProfileSerializer(
+            profiles,
+            many=True, read_only=True,
+            required=False, allow_null=True).data
+
+        return serialized_followers
+
+    def get_follow_requests_submitted(self, working_profile):
+        profiles = Profile.objects.filter(
+            follow_requests_received__id=working_profile.id)
+
+        serialized_follow_request = BaseProfileSerializer(
+            profiles,
+            many=True, read_only=True,
+            required=False, allow_null=True).data
+
+        return serialized_follow_request
+
+    def update(self, instance, validated_data):
+        validated_user_data = validated_data.get('user', {})
+        validated_phone_data = validated_data.get('phone_number', {})
+
+        # Update user data
+        instance.user.username = validated_user_data.get(
+            'username', instance.user.username
+        )
+        instance.user.email = validated_user_data.get(
+            'email', instance.user.email
+        )
+        instance.user.first_name = validated_user_data.get(
+            'first_name', instance.user.first_name
+        )
+        instance.user.last_name = validated_user_data.get(
+            'last_name', instance.user.last_name
+        )
+        instance.user.save()
+
+        # Update profile phone number
+        instance.phone_number.country_code = validated_phone_data.get(
+            'country_code', instance.phone_number.country_code
+        )
+        instance.phone_number.number = validated_phone_data.get(
+            'number', instance.phone_number.number
+        )
+        instance.phone_number.save()
+
+        # Update profile data
+        instance.bio = validated_data.get(
+            'bio', instance.bio
+        )
+        instance.is_private = validated_data.get(
+            'is_private', instance.is_private
+        )
+        instance.save()
+        return instance
