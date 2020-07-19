@@ -9,6 +9,8 @@ class Post(models.Model):
         Profile, models.CASCADE, related_name="posts")
 
     image = models.URLField()
+    # created = models.DateTimeField(auto_now_add=True)
+    # updated = models.DateTimeField(null=True, blank=True)
     likes = models.ForeignKey(
         Profile,
         models.CASCADE,

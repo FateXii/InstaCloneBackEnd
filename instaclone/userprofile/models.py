@@ -7,7 +7,6 @@ from rest_framework.authtoken.models import Token
 
 
 class PhoneNumber(models.Model):
-
     country_code = models.CharField(max_length=10)
     number = models.CharField(max_length=30)
 
