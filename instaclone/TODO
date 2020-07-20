@@ -11,7 +11,6 @@ Instaclone Backend:
             ✔ Delete test @created(20-07-17 01:14) @done(20-07-20 14:31)
         ✔ Wrote follow and follow request tests @done(20-07-20 14:32)
 
-
 ☐ Posts:@created(20-07-15 14:58)
     ☐ Create a posts model @created(20-07-15 14:58)
         This model should contain:
@@ -20,4 +19,10 @@ Instaclone Backend:
                 ☐ Allow multiple values. @created(20-07-15 15:11)
             ☐ Likes; one to many relationship with user profiles. @created(20-07-15 15:18)
             ☐ Shares; one to many relationship with the user profile. @created(20-07-15 15:26)
-        
+        ☐ Write tests for the model TDD has proven very effective in dealing with bugs: @ceated(20-07-20 14:35)
+            ☐ Crud Tests @created(20-07-20 14:35)
+                ☐ Create @created(20-07-20 14:35)
+                ☐ Update @created(20-07-20 14:35)
+                    ☐ Should not allow updates @created(20-07-20 14:36)
+                ☐ Read @created(20-07-20 14:35)
+                ☐ Delete @created(20-07-20 14:35)
