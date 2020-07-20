@@ -3,12 +3,13 @@ Instaclone Backend:
     This app handles the creation deletion and updating of users and their profiles.
     ☐ Finish profile app:  @created(20-07-17 01:12)
         ✔ Login, Logout @created(20-07-17 01:22) @done(20-07-17 01:23)
-        ☐ Write the CRUD tests @created(20-07-17 01:13)
+        ✔ Write the CRUD tests @created(20-07-17 01:13) @done(20-07-20 14:32)
             ✔ Create test @created(20-07-17 01:13) @done(20-07-17 01:13)
             ✔ Read test @created(20-07-17 01:14) @done(20-07-17 01:14)
             ✔ Update test @created(20-07-17 01:14) @done(20-07-19 15:20)
-            ☐ Delete test @created(20-07-17 01:14)
-        ☐ Put, patch, and delete methods should require auth @created(20-07-17 01:14)
+                ✔ Put, patch, and delete methods should require auth @created(20-07-17 01:14) @done(20-07-20 14:32)
+            ✔ Delete test @created(20-07-17 01:14) @done(20-07-20 14:31)
+        ✔ Wrote follow and follow request tests @done(20-07-20 14:32)
 
 
 ☐ Posts:@created(20-07-15 14:58)
