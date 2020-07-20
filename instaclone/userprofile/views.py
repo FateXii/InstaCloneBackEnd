@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework import viewsets, permissions, status
 from .models import Profile
 from .serializers import ProfileSerializer
+from .permissions import IsCurrentUser, CanView
 from posts.serializers import PostSerializer
 # from rest_framework import status
 
@@ -16,8 +17,14 @@ class ProfileViewSet(viewsets.ModelViewSet):
         Instantiates and returns the list of permissions that this view
         requires.
         """
-        if self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [permissions.IsAuthenticated]
+        if self.action in ['update',
+                           'partial_update',
+                           'destroy',
+                           ]:
+            permission_classes = [permissions.IsAuthenticated, IsCurrentUser]
+
+        elif self.action in ['list', 'retrieve']:
+            permission_classes = [CanView]
 
         else:
             permission_classes = []
@@ -95,6 +102,29 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
+        methods=['post'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def reject_follow_request(self, request,  pk):
+        current_profile = self.request.user.profile
+        profile_requesting_follow = Profile.objects.get(pk=pk)
+
+        if current_profile.follow_requests_received.filter(id=pk):
+            current_profile.follow_requests_received.remove(
+                profile_requesting_follow)
+            return Response(
+                data={'status': 'Follow request by @{} rejected.'.format(
+                    profile_requesting_follow.user.username)},
+                status=status.HTTP_200_OK)
+
+        return Response(
+            data={
+                'error': 'Follow request not found'
+            },
+            status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    @action(
+        detail=True,
         methods=['get']
     )
     def get_posts(self, request, pk):
@@ -116,27 +146,4 @@ class ProfileViewSet(viewsets.ModelViewSet):
         else:
             return Response(
                 data={'error': 'profile is private'},
-                status=status.HTTP_401_UNAUTHORIZED)
-
-    @action(
-        detail=True,
-        methods=['post'],
-        permission_classes=[permissions.IsAuthenticated]
-    )
-    def reject_follow_request(self, request,  pk):
-        current_profile = self.request.user.profile
-        profile_requesting_follow = Profile.objects.get(pk=pk)
-
-        if current_profile.follow_requests_received.filter(id=pk):
-            current_profile.follow_requests_received.remove(
-                profile_requesting_follow)
-            return Response(
-                data={'status': 'Follow request by @{} rejected.'.format(
-                    profile_requesting_follow.user.username)},
                 status=status.HTTP_200_OK)
-
-        return Response(
-            data={
-                'error': 'Follow request not found'
-            },
-            status=status.HTTP_406_NOT_ACCEPTABLE)
