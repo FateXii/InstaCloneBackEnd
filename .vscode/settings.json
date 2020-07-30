@@ -1,5 +1,5 @@
 {
-  "python.pythonPath": "/home/thendo/.local/share/virtualenvs/InstaCloneBackEnd-RR3lJhYB/bin/python",
+  "python.pythonPath": "/home/thendo/.local/share/virtualenvs/instaclone-COh_6T6O/bin/python3.8",
   "python.linting.pylintEnabled": false,
   "python.linting.pycodestyleEnabled": true,
   "python.linting.enabled": true,

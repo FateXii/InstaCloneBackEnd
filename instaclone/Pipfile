@@ -17,6 +17,9 @@ httpie = "*"
 django-cors-headers = "*"
 django-environ = "*"
 pytz = "*"
+phonenumbers = "*"
+django-countries = "*"
+psycopg2 = "*"
 
 [requires]
 python_version = "3.8"

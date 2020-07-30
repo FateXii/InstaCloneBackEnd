@@ -4,37 +4,36 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
-
-
-class PhoneNumber(models.Model):
-    country_code = models.CharField(max_length=10)
-    number = models.CharField(max_length=30)
+from django_countries.fields import CountryField
+import uuid
 
 
 class Profile(models.Model):
-
+    pk_uuid = models.UUIDField(default=uuid.uuid4, null=False,
+                               editable=False, unique=True)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='profile')
-    phone_number = models.OneToOneField(
-        PhoneNumber, on_delete=models.CASCADE,
-        null=True, blank=True)
-
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    country = CountryField(blank=True, null=True)
     bio = models.CharField(max_length=255)
     is_private = models.BooleanField(default=False)
-
     profiles_followed = models.ForeignKey(
-        'self', on_delete=models.DO_NOTHING,
+        'self', to_field='pk_uuid', on_delete=models.DO_NOTHING,
         blank=True, null=True, related_name='following')
 
-    follow_requests = models.ForeignKey(
-        'self', on_delete=models.DO_NOTHING,
-        blank=True, null=True, related_name='follow_requests_received')
 
-
-# @receiver(post_save, sender=settings.AUTH_USER_MODEL)
-# def create_auth_token(sender, instance=None, created=False, **kwargs):
-#     """Create auth token on user/profile creation"""
-#     if created:
-#         Token.objects.create(user=instance)
+class FollowRequests(models.Model):
+    pk_uuid = models.UUIDField(default=uuid.uuid4, null=False,
+                               editable=False, unique=True)
+    request_by = models.ForeignKey(
+        Profile, to_field='pk_uuid',
+        on_delete=models.CASCADE,
+        related_name='sent_by')
+    request_to_follow = models.ForeignKey(
+        Profile, to_field='pk_uuid',
+        on_delete=models.CASCADE,
+        related_name='sent_to')
+    created = models.DateTimeField(auto_now_add=True)
+    accepted = models.DateTimeField(blank=True, null=True)
