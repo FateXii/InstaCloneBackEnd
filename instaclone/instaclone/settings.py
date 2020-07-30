@@ -53,9 +53,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework.authtoken',
+    'django_countries',
 
     # Custom Apps
-    'posts',
+    'test_suite',
+    # 'posts',
     # 'comments',
     'userprofile',
 
@@ -64,6 +66,7 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
@@ -118,8 +121,16 @@ WSGI_APPLICATION = 'instaclone.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': env('POSTGRES_DB_NAME'),
+
+        'USER': env('POSTGRES_DB_USERNAME'),
+
+        'PASSWORD': env('POSTGRES_DB_PASSWORD'),
+
+        'HOST': env('POSTGRES_DB_HOST'),
+
+        'PORT': env('POSTGRES_DB_PORT'),
     }
 }
 
@@ -171,8 +182,8 @@ STATIC_URL = '/static/'
 # CORS_ALLOW_CREDENTIALS = True
 
 CORS_ORIGIN_WHITELIST = [
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
-    "http://192.168.43.197:3000"
+    # "http://127.0.0.1:3000",
+    # "http://localhost:3000",
+    # "http://192.168.43.197:3000"
 
 ]
