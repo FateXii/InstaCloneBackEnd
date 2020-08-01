@@ -1,15 +1,381 @@
+from django.contrib.auth.urls import urlpatterns
+from django.db import transaction
+from django.db.utils import IntegrityError
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from django.core import exceptions
+from userprofile.models import Profile
+from django.contrib.auth.models import User
+from test_suite.tests.common import test_data
+from test_suite.tests.common.test_methods import *
+
+from userprofile.serializers import ProfileSerializer
+import json
+import copy
 
 # iso_profile = test_data.iso_profile
+TEST_PROFILES = test_data.profiles
 
 
+class TestProfile(APITestCase):
+
+    def setUp(self):
+        for profile in TEST_PROFILES[:3]:  # Not inclusive
+            serializer = ProfileSerializer(data=profile)
+            serializer.is_valid()
+            serializer.save()
+
+    def test_create_profile(self):
+        """
+        Ensure we can create a new profile object.
+        """
+        url = reverse('profiles-list')
+        profile = copy.deepcopy(TEST_PROFILES[3])
+        self.assertEqual(
+            Profile.objects.all().count(),
+            3)
+
+        response = self.client.post(url, profile, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response_data = json.loads(response.content)
+        self.assertEqual(
+            Profile.objects.filter(pk_uuid=response_data['pk_uuid']).count(),
+            1)
+        self.assertEqual(
+            Profile.objects.all().count(),
+            4)
+
+    def test_list_all_profiles(self):
+        """
+        Ensure we can create a new profile object.
+        """
+        url = reverse('profiles-list')
+        response = self.client.get(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = json.loads(response.content)
+
+        self.assertIn(TEST_PROFILES[0]['username'], [
+                      profile['username'] for profile in response_data])
+        self.assertNotIn(TEST_PROFILES[3]['username'], [
+            profile['username'] for profile in response_data])
+
+        for profile in response_data:
+            pk_uuid = profile['pk_uuid']
+            self.assertEqual(Profile.objects.filter(
+                pk_uuid=pk_uuid).count(), 1)
+
+        self.assertEqual(len(response_data), 3)
+        self.assertEqual(len(Profile.objects.all()), len(response_data), 3)
+
+    def test_get_profile(self):
+        """
+        Ensure we can create a new profile object.
+        """
+        profile = get_profile(TEST_PROFILES[0]['username'])
+        url = reverse('profiles-detail', args=[profile.pk_uuid])
+        response = self.client.get(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response_data = json.loads(response.content)
+        self.assertEqual(response_data['username'], profile.user.username)
+
+    def test_login(self):
+        login_url = reverse('login')
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        data = {
+            'username': username,
+            'password': password
+        }
+        try:
+            # Using try with transaction.atomic() instead of just with
+            # prevents a bug that doesn't roll back non-consistant transactions
+            # by making those transaction atomic.
+            #
+            # checks profile does not have a token
+            with transaction.atomic():
+                get_profile(username).user.auth_token.key
+                self.fail('Profile by {}, has a Token'.format(username))
+        except exceptions.ObjectDoesNotExist:
+            self.assertTrue(True)
+
+        response = self.client.post(login_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response_data = json.loads(response.content)
+        response_profile = response_data['profile']
+        response_token = response_data['token']
+        current_user_token = get_profile(username).user.auth_token.key
+        self.assertEqual(response_token, current_user_token)
+
+    def test_logout(self):
+        """Test Login."""
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        try:
+            # checks profile does not have a token
+            with transaction.atomic():
+                get_profile(username).user.auth_token.key
+                self.fail('Profile by {}, has a Token'.format(username))
+        except exceptions.ObjectDoesNotExist:
+            self.assertTrue(True)
+
+        response = login(self.client, username, password)
+        profile_token = None
+        try:
+            profile_token = get_profile(username).user.auth_token.key
+            self.assertIsNotNone(profile_token)
+        except exceptions.ObjectDoesNotExist:
+            self.fail('Profile by {},does not has a Token'.format(username))
+
+        # Set Authorization Header
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Token {}'.format(profile_token)
+        )
+
+        logout_url = reverse('logout')
+        response = self.client.post(logout_url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response_data = json.loads(response.content)
+        self.assertIsNone(response_data['token'])
+        self.assertIsNone(response_data['profile'])
+
+        try:
+            # checks profile does not have a token
+            with transaction.atomic():
+                get_profile(username).user.auth_token.key
+                self.fail('Profile by {}, has a Token'.format(username))
+        except exceptions.ObjectDoesNotExist:
+            self.assertTrue(True)
 
 
+class TestProfilePartialUpdate(APITestCase):
+    def setUp(self):
+        for profile in TEST_PROFILES[:3]:  # Not inclusive
+            serializer = ProfileSerializer(data=profile)
+            serializer.is_valid()
+            serializer.save()
+
+    def test_partial_update_profile(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        current_profile = authorize(self.client, username, password)
+
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+        self.assertEquals(current_profile.user.username, username)
+        # Partial Update
+        response = self.client.patch(
+            detail_url, data={'bio': 'Really'}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        updated_logged_in_profile = get_profile(username)
+        self.assertEqual(updated_logged_in_profile.bio, 'Really')
+
+    def test_partial_with_repeated_value_update_profile(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        current_profile = authorize(self.client, username, password)
+
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+        # Partial Update
+        response = self.client.patch(
+            detail_url,
+            {
+                'username': TEST_PROFILES[1]['username'],
+                'email': TEST_PROFILES[1]['email'],
+            },
+            format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = json.loads(response.content)
+        self.assertIn('username', response_data.keys())
+
+    def test_unauthorized_partial_update_profile(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        current_profile = get_profile(username)
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+
+        # Partial Update
+        response = self.client.patch(
+            detail_url, {'bio': 'Really'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        updated_logged_in_profile = get_profile(username)
+        self.assertEqual(updated_logged_in_profile.bio, current_profile.bio)
+
+    def test_updating_wrong_profile(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        response_data = authorize(self.client, username, password)
+        current_profile = authorize(self.client, username, password)
+
+        # Update current profile SHOULD WORK
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+
+        # Partial Update
+        response = self.client.patch(
+            detail_url, {'bio': 'Really'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        updated_logged_in_profile = get_profile(current_profile.user.username)
+        self.assertEqual(updated_logged_in_profile.bio, 'Really')
+
+        # Update current profile SHOULD NOT WORK
+        other_profile = get_profile(TEST_PROFILES[1]['username'])
+        detail_url = reverse(
+            'profiles-detail', args=[other_profile.pk_uuid])
+        # Partial Update
+        response = self.client.patch(
+            detail_url, {'bio': 'Really'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        updated_other_profile = get_profile(other_profile.user.username)
+        self.assertEqual(other_profile.bio, updated_other_profile.bio)
 
 
+class TestProfileFullUpdate(APITestCase):
+    def setUp(self):
+        for profile in TEST_PROFILES[:3]:  # Not inclusive
+            serializer = ProfileSerializer(data=profile)
+            serializer.is_valid()
+            serializer.save()
+
+    def test_full_update_profile(self):
+        """
+        Ensure we can change the data in a profile.
+        """
+
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        current_profile = authorize(self.client, username, password)
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+
+        profile_to_update = TEST_PROFILES[0]
+        profile_to_update['bio'] = 'I\'ve been updated'
+
+        # Full update
+        response = self.client.put(
+            detail_url, profile_to_update, format='json')
+        response_data = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        updated_profile = get_profile(profile_to_update['username'])
+
+        self.assertEqual(current_profile.pk_uuid, updated_profile.pk_uuid)
+        self.assertEqual(updated_profile.bio, profile_to_update['bio'])
+
+    def test_full_with_repeated_unique_value_update_profile(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        current_profile = authorize(self.client, username, password)
+
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+        # Partial Update
+        profile_to_update = copy.deepcopy(TEST_PROFILES[0])
+        profile_to_update['username'] = TEST_PROFILES[1]['username']
+
+        response = self.client.put(
+            detail_url, profile_to_update, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response_data = json.loads(response.content)
+        self.assertIn('username', response_data.keys())
+
+    def test_unauthorized_full_update_profile(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        current_profile = get_profile(username)
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+
+        # Partial Update
+        profile_to_update = copy.deepcopy(TEST_PROFILES[0])
+        profile_to_update['username'] = TEST_PROFILES[1]['username']
+
+        response = self.client.put(
+            detail_url, profile_to_update, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        updated_logged_in_profile = get_profile(username)
+        self.assertEqual(updated_logged_in_profile.bio, current_profile.bio)
+
+    def test_updating_wrong_profile(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        current_profile = authorize(self.client, username, password)
+
+        # Update current profile SHOULD WORK
+        detail_url = reverse(
+            'profiles-detail', args=[current_profile.pk_uuid])
+
+        # Partial Update
+        profile_to_update = copy.deepcopy(TEST_PROFILES[0])
+        profile_to_update['bio'] = 'I should work'
+        response = self.client.put(
+            detail_url, profile_to_update, format='json')
+        response_data = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        updated_profile = get_profile(profile_to_update['username'])
+
+        self.assertEqual(current_profile.pk_uuid, updated_profile.pk_uuid)
+        self.assertEqual(updated_profile.bio, profile_to_update['bio'])
+
+        # Update current profile SHOULD NOT WORK
+
+        profile_to_update = copy.deepcopy(TEST_PROFILES[1])
+        profile_to_update['bio'] = 'I should not work'
+        other_profile = get_profile(profile_to_update['username'])
+        detail_url = reverse(
+            'profiles-detail', args=[other_profile.pk_uuid])
+
+        response = self.client.put(
+            detail_url, profile_to_update, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
+# # Check changed existing username
+# try:
+#     # Using try with transaction.atomic() instead of just with
+#     # prevents a bug that doesn't roll back non consistant transactions
+#     # by making those transaction atomic.
+#     #
+#     # Duplicates should be prevented.
+#     with transaction.atomic():
+#         response = self.client.patch(
+#             detail_url, {'bio': 'Really', 'username': 'user2'},
+#             format='json')
+# except IntegrityError:
+#     pass
 
+# # Check changed first name
+# response = self.client.patch(
+#     detail_url, {'bio': 'Really', 'first_name': 'user1'},
+#     format='json')
+# updated_logged_in_profile = Profile.objects.get(
+#     user__username=self.logged_in_user_1['username'])
+# self.assertEqual(response.status_code, status.HTTP_200_OK)
+# self.assertEqual(updated_logged_in_profile.user.first_name, 'user1')
 
+# # Check changed to unique username
+# response = self.client.patch(
+#     detail_url, {'bio': 'Really', 'username': 'user_name_unique'},
+#     format='json')
+# updated_logged_in_profile = Profile.objects.get(
+#     user__username='user_name_unique')
+
+# self.assertEqual(response.status_code, status.HTTP_200_OK)
+# self.assertEqual(
+#     updated_logged_in_profile.user.username, 'user_name_unique')
 
 # class CreateProfileTest(APITestCase):
 #     def test_create_profile(self):
