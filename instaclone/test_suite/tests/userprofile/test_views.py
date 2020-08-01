@@ -1,49 +1,14 @@
-# from django.contrib.auth.urls import urlpatterns
-# from django.db import transaction
-# from django.db.utils import IntegrityError
-# from django.urls import reverse
-# from rest_framework import status
-# from rest_framework.test import APITestCase
-# from django.core import exceptions
-# from userprofile.models import Profile
-# from django.contrib.auth.models import User
-# from rest_framework import serializers
-# from test_suite.tests.common import test_data
-# from test_suite.tests.common.test_methods import *
-# import json
 
 # iso_profile = test_data.iso_profile
-# profiles = test_data.profiles
 
 
-# # def login(testCase, username, password):
-# #     url = reverse('login')
-# #     user_details = {
-# #         'username': username,
-# #         'password': password
-# #     }
-
-# #     return testCase.client.post(url, user_details, format='json')
 
 
-# # def get_profile(username):
-# #     return Profile.objects.get(
-# #         user__username=username
-# #     )
 
 
-# # def get_user_token(username):
-# #     return get_profile(username).user.auth_token.key
 
 
-# # def set_auth_header(testCase, username=None):
-# #     if not username:
-# #         testCase.client.credentials()
-# #     else:
-# #         testCase.client.credentials(
-# #             HTTP_AUTHORIZATION='Token {}'.format(
-# #                 get_user_token(username)
-# #             ))
+
 
 
 # class CreateProfileTest(APITestCase):
@@ -93,7 +58,6 @@
 #                 response_data['token'],
 #                 Profile.objects.get(user__username=data['username'])
 #                 .user.auth_token.key)
-
 
 # class ProfileTest(APITestCase):
 
@@ -324,7 +288,6 @@
 #         # Check changed object does not exist
 #         with self.assertRaises(Profile.DoesNotExist):
 #             Profile.objects.get(id=logged_in_profile.id)
-
 
 # class FollowTest(APITestCase):
 #     def setUp(self):

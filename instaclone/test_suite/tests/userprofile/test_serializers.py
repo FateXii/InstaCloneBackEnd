@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from test_suite.tests.common import test_data
 from test_suite.tests.common.test_methods import *
+import json
 import copy
 
 TEST_PROFILES = test_data.profiles
@@ -48,8 +49,11 @@ class TestProfileSerializer(APITestCase):
             self.serializer_for_profile_1.is_valid(raise_exception=True))
         self.assertTrue(
             self.serializer_for_profile_2.is_valid(raise_exception=True))
+        self.serializer_for_profile_1.save()
+        self.serializer_for_profile_0.save()
+        # print(self.serializer_for_profile_1.data)
         self.assertNotIn(
-            'user', self.serializer_for_profile_1.data
+            'user', self.serializer_for_profile_1.data.keys()
         )
         self.assertNotIn(
             'password', self.serializer_for_profile_0.data.keys()
@@ -62,6 +66,7 @@ class TestProfileSerializer(APITestCase):
         profile = get_profile(TEST_PROFILES[5]['username'])
         serialized_profile_0 = ProfileSerializer(
             profile)
+
         self.assertEqual(
             serialized_profile_0.data['username'], profile.user.username)
 
@@ -92,3 +97,15 @@ class TestProfileSerializer(APITestCase):
 
         updated_profile = Profile.objects.get(user__username='munique')
         self.assertEqual(updated_profile.bio, 'I`ve been updated')
+
+    def test_unique_serializer_update(self):
+        profile = get_profile(TEST_PROFILES[5]['username'])
+        updated_profile = ProfileSerializer(
+            instance=profile, data={
+                'username': TEST_PROFILES[6]['username'],
+                'bio': 'I`ve been updated'
+            }, partial=True)
+        self.assertFalse(updated_profile.is_valid())
+
+        with self.assertRaises(serializers.ValidationError) as error:
+            updated_profile.is_valid(raise_exception=True)
