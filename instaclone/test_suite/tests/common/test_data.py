@@ -12,7 +12,6 @@ iso_profile = {
 
 profiles = [
     {
-
         "username": "user1",
         "first_name": "first_name1",
         "email": "email1@mail.com",

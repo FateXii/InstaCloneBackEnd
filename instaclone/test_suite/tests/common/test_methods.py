@@ -1,5 +1,6 @@
 from django.urls import reverse
 from userprofile.models import Profile
+import json
 
 
 def login(client, username, password):
@@ -32,11 +33,13 @@ def set_auth_header(client, username=None):
             ))
 
 
-def set_auth(client, username=None):
-    if not username:
-        client.credentials()
-    else:
+def authorize(client, username, password):
+    response = login(client, username, password)
+    profile = get_profile(username)
+    response_data = json.loads(response.content)
+    if response_data['token']:
         client.credentials(
             HTTP_AUTHORIZATION='Token {}'.format(
                 get_user_token(username)
             ))
+    return profile
