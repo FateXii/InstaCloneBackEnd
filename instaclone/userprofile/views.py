@@ -1,32 +1,75 @@
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework import viewsets, permissions, status
 from .models import Profile
-from .serializers import ProfileSerializer
-from .permissions import IsCurrentUser
+from .serializers import ProfileSerializer, LoginSerializer
+import userprofile.permissions as custom_permissions
+from rest_framework.response import Response
+from rest_framework.decorators import action, api_view,\
+    permission_classes,\
+    renderer_classes
+from rest_framework import viewsets, permissions, status
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from django.utils import timezone
+from django.contrib.auth.models import User as DjangoUser
+
+
+# from .permissions import IsCurrentUser
 # from posts.serializers import PostSerializer
 # from rest_framework import status
+
+
+@ api_view(['POST'])
+# @renderer_classes([BrowsableAPIRenderer])
+def login(request):
+    serializer = LoginSerializer(
+        data=request.data,
+        context={'request', request}
+    )
+    serializer.is_valid(raise_exception=True)
+    profile = serializer.validated_data['profile']
+    token, created = Token.objects.get_or_create(user=profile.user)
+    profile.user.last_login = timezone.now()
+    profile.user.save()
+    return Response(status=status.HTTP_200_OK, data={
+        'token': token.key,
+        'profile': ProfileSerializer(profile).data,
+        'logged_in': True,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+# @renderer_classes([BrowsableAPIRenderer])
+def logout(request):
+    user = DjangoUser.objects.get(id=request.user.id)
+    user.auth_token.delete()
+    if user.auth_token.key:
+        return Response(status=420, data={})
+    return Response(status=status.HTTP_200_OK, data={
+        'token': None,
+        'profile': None,
+        'logged_in': False,
+    })
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
-
+    lookup_field = 'pk_uuid'
 
 def get_permissions(self):
     """
     Instantiates and returns the list of permissions that this view
     requires.
     """
-    if self.action in ['update',
+        if self.action in [
                        'partial_update',
-                       'destroy',
+            'update',
                        ]:
-        permission_classes = [permissions.IsAuthenticated, IsCurrentUser]
+            permission_classes = [
+                permissions.IsAuthenticated,
+                custom_permissions.IsCurrentUser
 
-    elif self.action in ['list', 'retrieve']:
-        permission_classes = []
-
+            ]
     else:
         permission_classes = []
 

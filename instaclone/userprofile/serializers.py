@@ -5,6 +5,17 @@ from django.contrib.auth.models import User
 from django_countries.serializer_fields import CountryField
 from .models import Profile, FollowRequests
 from rest_framework.exceptions import ValidationError, ErrorDetail
+import collections
+import copy
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
 
 class LoginSerializer(serializers.Serializer):
@@ -32,8 +43,8 @@ class LoginSerializer(serializers.Serializer):
 
 
 class BaseProfileSerializer(serializers.ModelSerializer):
-    url = serializers.HyperlinkedIdentityField()
-
+    # url = serializers.HyperlinkedIdentityField()
+    user = UserSerializer(write_only=True)
     username = serializers.CharField(
         # source specifies the name of the attribute
         # used to populate the field
@@ -55,7 +66,7 @@ class BaseProfileSerializer(serializers.ModelSerializer):
     )
     first_name = serializers.CharField(
         source='user.first_name',
-        required=False
+        required=False,
     )
 
     last_name = serializers.CharField(
@@ -100,10 +111,38 @@ class BaseProfileSerializer(serializers.ModelSerializer):
             password=user_data.pop('password'),
             **user_data
         )
-
         profile = Profile.objects.create(
             user=user,  **validated_data)
         return profile
+
+    def validate(self, attrs):
+        """
+            Since profile is has a nested user User as to be validated first
+        """
+        user = attrs.pop('user', None)
+        user_instance = self.instance.user if self.instance else None
+        profile_keys = self.get_fields().keys()
+        profile = {
+            key: value for key, value in attrs.items()
+            if key in profile_keys
+        }
+        for key in profile_keys:
+            attrs.pop(key, None)
+        if user:
+            serialized_user = UserSerializer(
+                instance=user_instance,
+                data=user,
+                partial=self.partial,
+                **attrs)
+            serialized_user.is_valid(raise_exception=True)
+            attrs = {
+                'user': dict(serialized_user.validated_data),
+            }
+        attrs = {
+            **profile,
+            **attrs,
+        }
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         validated_user_data = validated_data.get('user', {})
@@ -151,7 +190,7 @@ class ProfileSerializer(BaseProfileSerializer):
 
     class Meta:
         model = Profile
-        fields = ['pk_uuid',  'username', 'email', 'password',
+        fields = ['id', 'pk_uuid',  'username', 'email', 'password',
                   'first_name', 'last_name', 'bio', 'is_private',
                   'following', 'followers', 'follow_requests_received',
                   'follow_requests_sent', 'phone_number',
@@ -165,7 +204,7 @@ class ProfileSerializer(BaseProfileSerializer):
 
     def get_followers(self, current_profile):
         profiles = Profile.objects.filter(
-            following__id=current_profile.id)
+            following__pk_uuid=current_profile.pk_uuid)
 
         serialized_followers = BaseProfileSerializer(
             profiles,
@@ -174,7 +213,7 @@ class ProfileSerializer(BaseProfileSerializer):
 
         return serialized_followers
 
-    def get_follow_requests_submitted(self, current_profile):
+    def get_follow_requests_sent(self, current_profile):
         requests = FollowRequests.objects.filter(
             sent_by__id=current_profile.id)
 
