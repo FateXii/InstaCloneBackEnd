@@ -85,133 +85,20 @@ Requesting profile:
 - IsAdmin, or
 - IsAuthenticated, and is Profile with `id == ${ID}`
 
-## /profiles/\${ID}/posts
+## /profiles/\${ID}/follow
 
 ### Method: `POST`
 
-Not Allowed
-
-### Method: `GET`
-
-Returns a list view of all posts by profile with id `${ID}`
+Add profile with `id == ${ID}` to current profiles following list
+if profile with `id == ${ID}` is private add to requests table
 
 #### Auth:
 
-Access is only given when the following is criteria is met:
+Access is only given when the following criteria is met:
 
 Requesting profile:
 
-- IsAdmin, or
-- IsAuthenticated, and is following Profile with `id == ${ID}`, or
-- Profile with `id == ${ID}` is not private
-
-### Method: `PUT`
-
-Not Allowed
-
-### Method: `PATCH`
-
-Not allowed
-
-### Method: `DELETE`
-
-Not Allowed
-
-## /profiles/\${Profile-ID}/posts/\${Post-ID}/
-
-### Method: `POST`
-
-Not Allowed
-
-### Method: `GET`
-
-Returns a single post with `id == ${Post-ID}` from profile with `id == ${Profile-ID}`
-
-#### Auth:
-
-Access is only given when the following is criteria is met:
-
-Requesting profile:
-
-- IsAdmin, or
-- IsAuthenticated, and is following Profile with `id == ${ID}`, or
-- Profile with `id == ${ID}` is not private
-
-### Method: `PUT`
-
-Not Allowed
-
-### Method: `PATCH`
-
-Not allowed
-
-### Method: `DELETE`
-
-Access is only given when the following is criteria is met:
-
-Requesting profile:
-
-- IsAdmin
-
-## /profiles/\${Profile-ID}/posts/\${Post-ID}/comments
-
-### Method: `POST`
-
-Not Allowed
-
-### Method: `GET`
-
-Returns a list view of all comments on post with id `${Post-ID}`
-
-#### Auth:
-
-Access is only given when the following is criteria is met:
-
-Requesting profile:
-
-- IsAdmin, or
-- IsAuthenticated, and is following Profile with `id == ${ID}`, or
-- Profile with `id == ${ID}` is not private
-
-### Method: `PUT`
-
-Not Allowed
-
-### Method: `PATCH`
-
-Not allowed
-
-### Method: `DELETE`
-
-## /profiles/\${Profile-ID}/posts/\${Post-ID}/comments/\${Comment-ID}/
-
-### Method: `POST`
-
-Not Allowed
-
-### Method: `GET`
-
-Returns a single comment with `id == ${Comment-ID}` from post with `id == ${Post-ID}`
-
-#### Auth:
-
-Access is only given when the following is criteria is met:
-
-Requesting profile:
-
-- IsAdmin, or
-- IsAuthenticated, and is following Profile with `id == ${Profile-ID}`, or
-- Profile with `id == ${ID}` is not private
-
-### Method: `PUT`
-
-Not Allowed
-
-### Method: `PATCH`
-
-Not allowed
-
-### Method: `DELETE`
+- IsAuthenticated, and is not Profile with `id == ${ID}`
 
 ## /profiles/\${ID}/following
 
@@ -400,3 +287,131 @@ Not allowed
 ### Method: `DELETE`
 
 Not allowed
+
+## /profiles/\${ID}/posts
+
+### Method: `POST`
+
+Not Allowed
+
+### Method: `GET`
+
+Returns a list view of all posts by profile with id `${ID}`
+
+#### Auth:
+
+Access is only given when the following is criteria is met:
+
+Requesting profile:
+
+- IsAdmin, or
+- IsAuthenticated, and is following Profile with `id == ${ID}`, or
+- Profile with `id == ${ID}` is not private
+
+### Method: `PUT`
+
+Not Allowed
+
+### Method: `PATCH`
+
+Not allowed
+
+### Method: `DELETE`
+
+Not Allowed
+
+## /profiles/\${Profile-ID}/posts/\${Post-ID}/
+
+### Method: `POST`
+
+Not Allowed
+
+### Method: `GET`
+
+Returns a single post with `id == ${Post-ID}` from profile with `id == ${Profile-ID}`
+
+#### Auth:
+
+Access is only given when the following is criteria is met:
+
+Requesting profile:
+
+- IsAdmin, or
+- IsAuthenticated, and is following Profile with `id == ${ID}`, or
+- Profile with `id == ${ID}` is not private
+
+### Method: `PUT`
+
+Not Allowed
+
+### Method: `PATCH`
+
+Not allowed
+
+### Method: `DELETE`
+
+Access is only given when the following is criteria is met:
+
+Requesting profile:
+
+- IsAdmin
+
+## /profiles/\${Profile-ID}/posts/\${Post-ID}/comments
+
+### Method: `POST`
+
+Not Allowed
+
+### Method: `GET`
+
+Returns a list view of all comments on post with id `${Post-ID}`
+
+#### Auth:
+
+Access is only given when the following is criteria is met:
+
+Requesting profile:
+
+- IsAdmin, or
+- IsAuthenticated, and is following Profile with `id == ${ID}`, or
+- Profile with `id == ${ID}` is not private
+
+### Method: `PUT`
+
+Not Allowed
+
+### Method: `PATCH`
+
+Not allowed
+
+### Method: `DELETE`
+
+## /profiles/\${Profile-ID}/posts/\${Post-ID}/comments/\${Comment-ID}/
+
+### Method: `POST`
+
+Not Allowed
+
+### Method: `GET`
+
+Returns a single comment with `id == ${Comment-ID}` from post with `id == ${Post-ID}`
+
+#### Auth:
+
+Access is only given when the following is criteria is met:
+
+Requesting profile:
+
+- IsAdmin, or
+- IsAuthenticated, and is following Profile with `id == ${Profile-ID}`, or
+- Profile with `id == ${ID}` is not private
+
+### Method: `PUT`
+
+Not Allowed
+
+### Method: `PATCH`
+
+Not allowed
+
+### Method: `DELETE`

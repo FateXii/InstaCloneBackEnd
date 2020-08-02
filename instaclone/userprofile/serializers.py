@@ -8,6 +8,8 @@ from rest_framework.exceptions import ValidationError, ErrorDetail
 import collections
 import copy
 
+# TODO: Serializer for redacted profiles
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
