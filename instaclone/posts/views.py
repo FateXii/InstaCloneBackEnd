@@ -5,6 +5,7 @@ from rest_framework import viewsets
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from .permissions import IsUserWhoPosted, PosterIsNotPrivateOrIsFollowing
 
 
 # Create your views here.
@@ -17,8 +18,12 @@ class PostViewSet(viewsets.ModelViewSet):
         Instantiates and returns the list of permissions that this view
         requires.
         """
-        if self.action in ['create']:
-            permission_classes = [permissions.IsAuthenticated]
+        if self.action in ['create', 'destroy']:
+            permission_classes = [permissions.IsAuthenticated, IsUserWhoPosted]
+        elif self.action in ['list', 'detail']:
+            permission_classes = [IsUserWhoPosted,
+                                  PosterIsNotPrivateOrIsFollowing
+                                  ]
 
         else:
             permission_classes = []
@@ -33,8 +38,7 @@ class PostViewSet(viewsets.ModelViewSet):
             context={'context', request}
         )
         if serializer.is_valid(raise_exception=True):
-            validated_data = serializer.data
-            serializer.create(validated_data)
+            serializer.create(serializer.data)
         return Response(
-            validated_data,
+            serializer.data,
             status=status.HTTP_201_CREATED)
