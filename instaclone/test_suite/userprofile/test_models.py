@@ -5,8 +5,8 @@ from django.core import exceptions
 from userprofile.models import Profile, FollowRequests
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from test_suite.tests.common import test_data
-from test_suite.tests.common.test_methods import *
+from test_suite.common import test_data
+from test_suite.common.test_methods import *
 import copy
 
 TEST_PROFILES = test_data.profiles
@@ -31,7 +31,7 @@ class TestUserProfileModels(APITestCase):
 
     def test_user_created(self):
         all_users = User.objects.all()
-        self.assertEqual(all_users.count(), 7)
+        self.assertEqual(all_users.count(), 10)
 
         user_0 = User.objects.get(
             username=TEST_PROFILES[0]['username'])
@@ -39,7 +39,7 @@ class TestUserProfileModels(APITestCase):
 
     def test_profile_created(self):
         all_profiles = Profile.objects.all()
-        self.assertEqual(all_profiles.count(), 7)
+        self.assertEqual(all_profiles.count(), 10)
 
         profile_for_user_1 = Profile.objects.get(
             user__username=TEST_PROFILES[1]['username'])

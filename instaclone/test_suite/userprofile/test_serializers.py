@@ -4,8 +4,8 @@ from userprofile.models import Profile, FollowRequests
 from userprofile.serializers import ProfileSerializer
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from test_suite.tests.common import test_data
-from test_suite.tests.common.test_methods import *
+from test_suite.common import test_data
+from test_suite.common.test_methods import *
 import json
 import copy
 
