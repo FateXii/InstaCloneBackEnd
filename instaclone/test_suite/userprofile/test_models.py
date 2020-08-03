@@ -70,7 +70,7 @@ class TestUserProfileModels(APITestCase):
         profile_to_follow = Profile.objects.get(
             user__username=TEST_PROFILES[0]['username'])
 
-        FollowRequests(request_by=profile,
-                       request_to_follow=profile_to_follow).save()
+        FollowRequests(request_from=profile,
+                       request_to=profile_to_follow).save()
 
         self.assertEqual(FollowRequests.objects.all().count(), 1)

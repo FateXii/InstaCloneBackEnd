@@ -5,17 +5,17 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.core import exceptions
-from userprofile.models import Profile
+from userprofile.models import Profile, FollowRequests
 from django.contrib.auth.models import User
 from test_suite.common import test_data
 from test_suite.common.test_methods import *
 
-from userprofile.serializers import ProfileSerializer
+from userprofile.serializers import ProfileSerializer, BaseProfileSerializer
 import json
 import copy
 
-# iso_profile = test_data.iso_profile
 TEST_PROFILES = test_data.profiles
+ZERO_UUID = '00000000-0000-0000-0000-000000000000'
 
 
 class TestProfileCreateAndRead(APITestCase):
@@ -404,8 +404,14 @@ class TestProfileDelete(APITestCase):
         response = self.client.get(url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_delete_profile_that_does_not_exist(self):
+        username = TEST_PROFILES[0]['username']
+        password = TEST_PROFILES[0]['password']
+        profile = authorize(self.client, username, password)
+        self.assertEqual(profile.user.username, username)
+
         # Delete deleted profile should return 404
-        url = reverse('profiles-detail', args=[profile.pk_uuid])
+        url = reverse('profiles-detail', args=[ZERO_UUID])
         response = self.client.delete(url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -429,12 +435,15 @@ class TestProfileDelete(APITestCase):
 
 class TestProfileFollow(APITestCase):
     def setUp(self):
-        for profile in TEST_PROFILES:  # Not inclusive
+        for profile in TEST_PROFILES:
             serializer = ProfileSerializer(data=profile)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+        get_profile('user3').following.add(get_profile('user2'))
+        get_profile('user3').following.add(get_profile('user1'))
+        get_profile('user4').following.add(get_profile('user0'))
 
-    def test_follow_profile_thar_does_not_exist(self):
+    def test_follow_profile_that_does_not_exist(self):
         profile_following_username = TEST_PROFILES[0]['username']
         profile_following_password = TEST_PROFILES[0]['password']
         profile_following = authorize(
@@ -445,7 +454,7 @@ class TestProfileFollow(APITestCase):
 
         # Follow
         follow_url = reverse(
-            'profiles-follow', args=['00000000-0000-0000-0000-000000000000'])
+            'profiles-follow', args=[ZERO_UUID])
         response = self.client.post(follow_url, None, format='json')
 
         # Expect follow
@@ -471,8 +480,6 @@ class TestProfileFollow(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotIn(profile_to_follow, profile_following.following.all())
-
-        # TODO: Add Follow Request test
 
     def test_unauthorized_follow(self):
         profile_following_username = TEST_PROFILES[0]['username']
@@ -536,104 +543,374 @@ class TestProfileFollow(APITestCase):
         self.assertIn(profile_to_follow, profile_following.following.all())
         self.assertNotIn(profile_following, profile_to_follow.following.all())
 
-    # def test_follow_request_on_private_profile(self):
-    #     profile_1 = get_profile('user1')
-    #     profile_2 = get_profile('user2')
+    def test_unfollow(self):
+        current_profile = authorize(
+            self.client,
+            'user3',
+            'pass1234'
+        )
+        profile_to_unfollow = get_profile('user1')
 
-    #     # Login User2
-    #     login(self, profiles[1]['username'], profiles[1]['password'])
-    #     set_auth_header(self, 'user2')
+        self.assertIn(profile_to_unfollow, current_profile.following.all())
+        follow_url = reverse(
+            'profiles-unfollow', args=[profile_to_unfollow.pk_uuid])
+        response = self.client.post(follow_url, None, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(profile_to_unfollow, current_profile.following.all())
 
-    #     # Follow User1
-    #     follow_url = reverse('profiles-follow', args=[profile_1.id])
-    #     response = self.client.post(follow_url, None, format='json')
+    def test_unfollow_wrong_profile(self):
+        current_profile = authorize(
+            self.client,
+            'user0',
+            'pass1234'
+        )
+        profile_to_unfollow = get_profile('user3')
 
-    #     # Expect placed in request list
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertIn(profile_2, profile_1.follow_requests_received.all())
-    #     self.assertNotIn(profile_1, profile_2.following.all())
+        self.assertNotIn(profile_to_unfollow, current_profile.following.all())
+        follow_url = reverse(
+            'profiles-unfollow', args=[profile_to_unfollow.pk_uuid])
+        response = self.client.post(follow_url, None, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn(profile_to_unfollow, current_profile.following.all())
 
-    # def test_accept_follow_request(self):
-    #     profile_1 = get_profile('user1')
-    #     profile_2 = get_profile('user2')
 
-    #     # Login User2
-    #     login(self, profiles[1]['username'], profiles[1]['password'])
-    #     set_auth_header(self, 'user2')
+class TestFollowRequests(APITestCase):
+    def setUp(self):
+        for profile in TEST_PROFILES:
+            serializer = ProfileSerializer(data=profile)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        follow_requests = [
+            FollowRequests(
+                request_from=get_profile('user1'),
+                request_to=get_profile('user6')
+            ),
+            FollowRequests(
+                request_from=get_profile('user1'),
+                request_to=get_profile('user7')
+            ),
+            FollowRequests(
+                request_from=get_profile('user1'),
+                request_to=get_profile('user8')
+            ),
+            FollowRequests(
+                request_from=get_profile('user1'),
+                request_to=get_profile('user9')
+            ),
+            FollowRequests(
+                request_from=get_profile('user2'),
+                request_to=get_profile('user7')
+            ),
+            FollowRequests(
+                request_from=get_profile('user7'),
+                request_to=get_profile('user5')
+            ),
+            FollowRequests(
+                request_from=get_profile('user7'),
+                request_to=get_profile('user6')
+            ),
+            FollowRequests(
+                request_from=get_profile('user7'),
+                request_to=get_profile('user8')
+            ),
+            FollowRequests(
+                request_from=get_profile('user7'),
+                request_to=get_profile('user9')
+            ),
+        ]
+        get_profile('user3').following.add(get_profile('user7'))
+        for request in follow_requests:
+            request.save()
+        self.INITIAL_REQUEST_COUNT = len(follow_requests)
 
-    #     # User2 follow user1
-    #     follow_url = reverse('profiles-follow', args=[profile_1.id])
-    #     response = self.client.post(follow_url, None, format='json')
+    def test_add_follow_request(self):
+        profile_following_username = TEST_PROFILES[0]['username']
+        profile_following_password = TEST_PROFILES[0]['password']
+        profile_following = authorize(
+            self.client,
+            profile_following_username,
+            profile_following_password
+        )
+        profile_to_follow_username = TEST_PROFILES[5]['username']
+        profile_to_follow_password = TEST_PROFILES[5]['password']
+        profile_to_follow = get_profile(profile_to_follow_username)
 
-    #     # Login User1
-    #     login(self, profiles[0]['username'], profiles[0]['password'])
-    #     set_auth_header(self, 'user1')
+        self.assertTrue(profile_to_follow.is_private)
+        self.assertEqual(self.INITIAL_REQUEST_COUNT,
+                         FollowRequests.objects.all().count())
 
-    #     # Accept Follow request
-    #     accept_request = reverse(
-    #         'profiles-accept-follow-request', args=[profile_2.id])
-    #     response = self.client.post(accept_request, None, format='json')
+        follow_url = reverse(
+            'profiles-follow', args=[profile_to_follow.pk_uuid])
+        response = self.client.post(follow_url, None, format='json')
 
-    #     # Expect now Following
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertIn(profile_1, profile_2.following.all())
+        self.assertEqual(self.INITIAL_REQUEST_COUNT + 1,
+                         FollowRequests.objects.all().count())
+        self.assertEqual(1,
+                         profile_to_follow.requests_received.filter(
+                             request_from=profile_following).count()
+                         )
 
-    # def test_reject_follow_request(self):
-    #     profile_1 = get_profile('user1')
-    #     profile_2 = get_profile('user2')
+        self.assertEqual(
+            profile_to_follow
+            .requests_received
+            .get(
+                request_from=profile_following
+            ).request_from, profile_following
+        )
 
-    #     # Login User2
-    #     login(self, profiles[1]['username'], profiles[1]['password'])
-    #     set_auth_header(self, 'user2')
+        self.assertEqual(
+            profile_following
+            .requests_sent
+            .get(
+                request_to=profile_to_follow
+            ).request_to,
+            profile_to_follow
+        )
 
-    #     # User2 follow user1
-    #     follow_url = reverse('profiles-follow', args=[profile_1.id])
-    #     response = self.client.post(follow_url, None, format='json')
+    def test_repeated_add_request(self):
+        profile_following = authorize(
+            self.client,
+            'user1',
+            'pass1234',
+        )
+        profile_to_follow = get_profile('user6')
 
-    #     # Login User1
-    #     login(self, profiles[0]['username'], profiles[0]['password'])
-    #     set_auth_header(self, 'user1')
+        self.assertTrue(profile_to_follow.is_private)
+        self.assertEqual(self.INITIAL_REQUEST_COUNT,
+                         FollowRequests.objects.all().count())
+        follow_url = reverse(
+            'profiles-follow', args=[profile_to_follow.pk_uuid])
+        response = self.client.post(follow_url, None, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.INITIAL_REQUEST_COUNT,
+                         FollowRequests.objects.all().count())
 
-    #     # Accept Follow request
-    #     accept_request = reverse(
-    #         'profiles-reject-follow-request', args=[profile_2.id])
-    #     response = self.client.post(accept_request, None, format='json')
+        self.assertEqual(
+            1,
+            profile_following
+            .requests_sent
+            .filter(request_to=profile_to_follow)
+            .count()
+        )
 
-    #     # Expect not Following
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertNotIn(profile_1, profile_2.following.all())
+    def test_list_not_authorized(self):
+        working_profile = get_profile('user1')
 
-    # def test_unfollow(self):
-    #     profile_1 = get_profile('user1')
-    #     profile_2 = get_profile('user2')
-    #     profile_3 = get_profile('user3')
-    #     profile_4 = get_profile('user4')
+        request_list = reverse(
+            'requests-sent', args=[working_profile.pk_uuid])
+        response = self.client.get(request_list, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    #     # Login User1
-    #     login(self, profiles[0]['username'], profiles[0]['password'])
-    #     set_auth_header(self, 'user1')
+    def test_list_not_current_user(self):
+        working_profile = get_profile('user1')
+        current_profile = authorize(
+            self.client,
+            'user2',
+            'pass1234'
+        )
+        # Not following request
+        request_list = reverse(
+            'requests-sent', args=[working_profile.pk_uuid])
+        response = self.client.get(request_list, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    #     # User1 follow user2
-    #     follow_url = reverse('profiles-follow', args=[profile_2.id])
-    #     response = self.client.post(follow_url, None, format='json')
+    def test_list_authorized_current_user(self):
 
-    #     # User1 follow user3
-    #     follow_url = reverse('profiles-follow', args=[profile_3.id])
-    #     response = self.client.post(follow_url, None, format='json')
+        current_profile = authorize(
+            self.client,
+            'user7',
+            'pass1234'
+        )
 
-    #     # User1 follow user4
-    #     follow_url = reverse('profiles-follow', args=[profile_4.id])
-    #     response = self.client.post(follow_url, None, format='json')
+        request_list = reverse(
+            'requests-sent', args=[current_profile.pk_uuid])
+        response = self.client.get(request_list, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = json.loads(response.content)
 
-    #     self.assertNotIn(profile_1, profile_2.following.all())
-    #     self.assertNotIn(profile_1, profile_3.following.all())
-    #     self.assertNotIn(profile_1, profile_4.following.all())
+        for field in ['pk_uuid',  'username', 'email',
+                      'first_name', 'last_name', 'bio', 'phone_number',
+                      'is_private'
+                      ]:
+            for response in response_data:
+                self.assertIn(field, response.keys())
 
-    #     # Unfollow
-    #     accept_request = reverse(
-    #         'profiles-unfollow', args=[profile_2.id])
-    #     response = self.client.post(accept_request, None, format='json')
+        self.assertEqual(
+            ['user9', 'user8', 'user5', 'user6', ].sort(),
+            [response['username'] for response in response_data].sort()
+        )
 
-    #     # Expect not Following User2
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertNotIn(profile_2, profile_1.following.all())
+    def test_list_requests_received(self):
+        current_profile = authorize(
+            self.client,
+            'user6',
+            'pass1234'
+        )
+        request_list = reverse(
+            'requests-received', args=[current_profile.pk_uuid])
+        response = self.client.get(request_list, {}, format='json')
+        response_data = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(2, len(response_data))
+
+        for field in ['pk_uuid',  'username', 'email',
+                      'first_name', 'last_name', 'bio', 'phone_number',
+                      'is_private'
+                      ]:
+            for response in response_data:
+                self.assertIn(field, response.keys())
+
+        self.assertEqual(
+            ['user1', 'user7', ]
+            .sort(),
+            [response['username'] for response in response_data]
+            .sort()
+        )
+
+    def test_get_follow_request(self):
+        current_profile = authorize(
+            self.client,
+            'user6',
+            'pass1234'
+        )
+        request = current_profile.requests_received.get(
+            request_from=get_profile('user1'))
+        request_list = reverse(
+            'requests-detail',
+            args=[current_profile.pk_uuid, request.pk_uuid])
+        response = self.client.get(request_list, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = json.loads(response.content)
+        self.assertEqual(
+            str(current_profile.pk_uuid),
+            response_data['request_to']['pk_uuid']
+        )
+        self.assertEqual(
+            str(get_profile('user1').pk_uuid),
+            response_data['request_from']['pk_uuid']
+        )
+        self.assertIsNone(response_data['accepted'])
+
+    def test_get_follow_request_to_wrong_profile(self):
+        current_profile = authorize(
+            self.client,
+            'user6',
+            'pass1234'
+        )
+        request = get_profile('user7').requests_received.get(
+            request_from=get_profile('user1'))
+        request_list = reverse(
+            'requests-detail',
+            args=[current_profile.pk_uuid, request.pk_uuid])
+        response = self.client.get(request_list, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_accept_follow_request(self):
+        current_profile = authorize(
+            self.client,
+            'user6',
+            'pass1234'
+        )
+        request = current_profile.requests_received.get(
+            request_from=get_profile('user1'))
+        request_list = reverse(
+            'requests-accept',
+            args=[current_profile.pk_uuid, request.pk_uuid]
+        )
+        response = self.client.post(request_list, {}, format='json')
+        response_data = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Check accepted
+        self.assertIsNotNone(current_profile.requests_received.get(
+            request_from=get_profile('user1')).accepted)
+        # Check Not rejected
+        self.assertIsNone(current_profile.requests_received.get(
+            request_from=get_profile('user1')).rejected)
+        # Check following
+        self.assertIn(current_profile, get_profile('user1').following.all())
+
+    def test_accept_wrong_follow_request(self):
+        current_profile = authorize(
+            self.client,
+            'user6',
+            'pass1234'
+        )
+        request = get_profile('user7').requests_received.get(
+            request_from=get_profile('user1'))
+        request_list = reverse(
+            'requests-reject',
+            args=[current_profile.pk_uuid, request.pk_uuid]
+        )
+        response = self.client.post(request_list, {}, format='json')
+        response_data = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        # Check Not accepted
+        self.assertIsNone(current_profile.requests_received.get(
+            request_from=get_profile('user1')).accepted)
+        # Check Not rejected
+        self.assertIsNone(current_profile.requests_received.get(
+            request_from=get_profile('user1')).rejected)
+        # Check not following
+        self.assertNotIn(current_profile, get_profile('user1').following.all())
+
+    def test_accept_request_that_does_not_exist(self):
+        current_profile = authorize(
+            self.client,
+            'user6',
+            'pass1234'
+        )
+        request_list = reverse(
+            'requests-accept',
+            args=[current_profile.pk_uuid, ZERO_UUID]
+        )
+        response = self.client.post(request_list, {}, format='json')
+        response_data = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_reject_follow_request(self):
+        current_profile = authorize(
+            self.client,
+            'user7',
+            'pass1234'
+        )
+        request = current_profile.requests_received.get(
+            request_from=get_profile('user1'))
+        request_list = reverse(
+            'requests-reject',
+            args=[current_profile.pk_uuid, request.pk_uuid]
+        )
+        response = self.client.post(request_list, {}, format='json')
+        response_data = json.loads(response.content)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Check Not accepted
+        self.assertIsNone(current_profile.requests_received.get(
+            request_from=get_profile('user1')).accepted)
+        # Check rejected
+        self.assertIsNotNone(current_profile.requests_received.get(
+            request_from=get_profile('user1')).rejected)
+        # Check not following
+        self.assertNotIn(current_profile, get_profile('user1').following.all())
+
+        # profile_1 = get_profile('user1')
+        # profile_2 = get_profile('user2')
+
+        # # Login User2
+        # login(self, profiles[1]['username'], profiles[1]['password'])
+        # set_auth_header(self, 'user2')
+
+        # # User2 follow user1
+        # follow_url = reverse('profiles-follow', args=[profile_1.id])
+        # response = self.client.post(follow_url, None, format='json')
+
+        # # Login User1
+        # login(self, profiles[0]['username'], profiles[0]['password'])
+        # set_auth_header(self, 'user1')
+
+        # # Accept Follow request
+        # accept_request = reverse(
+        #     'profiles-reject-follow-request', args=[profile_2.id])
+        # response = self.client.post(accept_request, None, format='json')
+
+        # # Expect not Following
+        # self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.assertNotIn(profile_1, profile_2.following.all())

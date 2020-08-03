@@ -1,3 +1,2 @@
 from rest_framework.test import APITestCase
-
-raise Exception("Please run tests against test_suite.tests.userprofile")
+from test_suite.userprofile import *

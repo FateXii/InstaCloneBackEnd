@@ -1,5 +1,7 @@
-from .models import Profile
-from .serializers import ProfileSerializer, LoginSerializer
+from .models import Profile, FollowRequests
+from .serializers import ProfileSerializer,\
+    LoginSerializer,\
+    BaseProfileSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view,\
     permission_classes,\
@@ -10,13 +12,8 @@ from rest_framework.authtoken.models import Token
 
 from django.utils import timezone
 from django.contrib.auth.models import AnonymousUser, User as DjangoUser
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, get_list_or_404
 import userprofile.permissions as custom_permissions
-
-
-# from .permissions import IsCurrentUser
-# from posts.serializers import PostSerializer
-# from rest_framework import status
 
 
 @ api_view(['POST'])
@@ -65,17 +62,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
             'partial_update',
             'update',
             'destroy',
+            'follow',
         ]:
             permission_classes = [
-                custom_permissions.IsAuthenticatedCurrentUser
+                custom_permissions.IsAuthenticatedCurrentUserObj
 
             ]
-        elif self.action in [
-            'follow'
-        ]:
-            permission_classes = [
-                permissions.IsAuthenticated
-            ]
+
         else:
             permission_classes = []
 
@@ -84,6 +77,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=['post'],
+        url_name='follow'
     )
     def follow(self, request,  pk_uuid):
         current_profile = request.user.profile
@@ -91,141 +85,181 @@ class ProfileViewSet(viewsets.ModelViewSet):
             self.get_queryset(),
             pk_uuid=pk_uuid
         )
-
-        if profile_to_follow != current_profile and\
-                profile_to_follow not in current_profile.following.all():
+        already_requested = profile_to_follow in [
+            _request.request_to for _request in
+            current_profile.requests_sent.all()
+        ]
+        already_following = profile_to_follow in current_profile.following.all()
+        if profile_to_follow != current_profile and not already_following and\
+                not already_requested:
+            message = {}
             if not profile_to_follow.is_private:
                 current_profile.following.add(profile_to_follow)
+                message['code'] = 'follow'
+                message['message'] = '{}'.format(profile_to_follow.pk_uuid)
             else:
-                # TODO: implement add to follow requests
-                pass
+                message['code'] = 'request'
+                follow_request = FollowRequests.objects.create(
+                    request_from=current_profile,
+                    request_to=profile_to_follow
+                )
+                message['message'] = '{}'.format(follow_request.pk_uuid)
+            return Response(
+                data=message,
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            data={
+                'code': 'follow',
+                'message': 'forbidden'
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    @action(
+        detail=True,
+        methods=['post'],
+        url_name='unfollow'
+    )
+    def unfollow(self, request,  pk_uuid):
+        current_profile = request.user.profile
+        profile_to_unfollow = get_object_or_404(
+            self.get_queryset(),
+            pk_uuid=pk_uuid
+        )
+        if profile_to_unfollow in current_profile.following.all():
+            current_profile.following.remove(profile_to_unfollow)
             return Response(
                 data={},
                 status=status.HTTP_200_OK
             )
         return Response(
-            data={},
+            data={
+                'code': 'unfollow',
+                'message': 'forbidden'
+            },
             status=status.HTTP_403_FORBIDDEN
         )
 
 
-# @action(
-#     detail=True, methods=['post'],
-#     permission_classes=[permissions.IsAuthenticated])
-# def follow(self, request,  pk):
-#     current_profile = self.request.user.profile
-#     profile_to_follow = Profile.objects.get(pk=pk)
-
-#     if current_profile.id == profile_to_follow.id:
-#         return Response(
-#             data={
-#                 'error': 'Cannot follow self'
-#             },
-#             status=status.HTTP_406_NOT_ACCEPTABLE
-#         )
-#     if not profile_to_follow.is_private:
-#         current_profile.following.add(profile_to_follow)
-#         return Response(
-#             data={'status': 'Following @{}.'.format(
-#                 profile_to_follow.user.username)},
-#             status=status.HTTP_200_OK
-#         )
-
-#     profile_to_follow.follow_requests_received.add(current_profile)
-#     return Response(
-#         data={'status': 'request to follow @{} submitted.'.format(
-#             profile_to_follow.user.username)},
-#         status=status.HTTP_200_OK)
+@api_view(['GET'])
+@permission_classes(
+    [
+        custom_permissions.IsAuthenticatedCurrentUserView,
+    ]
+)
+def requests_sent_view(request,  pk_uuid):
+    serializer = BaseProfileSerializer
+    profile = get_object_or_404(Profile, pk_uuid=pk_uuid)
+    request_sent_by_profile = profile.requests_sent.all()
+    profiles_sent_to = [
+        request_sent.request_to for request_sent in request_sent_by_profile
+    ]
+    profiles = serializer(profiles_sent_to, many=True)
+    return Response(
+        data=profiles.data,
+        status=status.HTTP_200_OK,
+    )
 
 
-# @action(
-#     detail=True, methods=['post'],
-#     permission_classes=[permissions.IsAuthenticated])
-# def unfollow(self, request,  pk):
-#     current_profile = self.request.user.profile
-#     profile_to_unfollow = Profile.objects.get(pk=pk)
-
-#     if current_profile.following.filter(id=pk).count():
-#         current_profile.following.remove(profile_to_unfollow)
-#         return Response(
-#             data={'status': 'Unfollowed @{}.'.format(
-#                 profile_to_unfollow.user.username)},
-#             status=status.HTTP_200_OK)
-#     return Response(
-#         data={'error': 'Not following user'},
-#         status=status.HTTP_406_NOT_ACCEPTABLE
-#     )
-
-
-# @action(
-#     detail=True, methods=['post'],
-#     permission_classes=[permissions.IsAuthenticated])
-# def accept_follow_request(self, request,  pk):
-#     current_profile = self.request.user.profile
-#     profile_requesting_follow = Profile.objects.get(pk=pk)
-
-#     if current_profile.follow_requests_received.filter(id=pk):
-
-#         profile_requesting_follow.following.add(current_profile)
-
-#         current_profile.follow_requests_received.remove(
-#             profile_requesting_follow)
-#         return Response(
-#             data={'status': 'Follow request by @{} accepted.'.format(
-#                 profile_requesting_follow.user.username)},
-#             status=status.HTTP_200_OK)
-#     return Response(
-#         data={
-#             'error': 'Follow request not found'
-#         },
-#         status=status.HTTP_406_NOT_ACCEPTABLE)
+@api_view(['GET'])
+@permission_classes(
+    [
+        custom_permissions.IsAuthenticatedCurrentUserView
+    ]
+)
+def requests_received_view(request,  pk_uuid):
+    serializer = BaseProfileSerializer
+    profile = get_object_or_404(Profile, pk_uuid=pk_uuid)
+    requests_received_by_profile = profile.requests_received.all()
+    profiles_from = [
+        _request.request_from for
+        _request in requests_received_by_profile
+    ]
+    profiles = serializer(profiles_from, many=True)
+    return Response(
+        data=profiles.data,
+        status=status.HTTP_200_OK,
+    )
 
 
-# @action(
-#     detail=True,
-#     methods=['post'],
-#     permission_classes=[permissions.IsAuthenticated]
-# )
-# def reject_follow_request(self, request,  pk):
-#     current_profile = self.request.user.profile
-#     profile_requesting_follow = Profile.objects.get(pk=pk)
+@api_view(['GET'])
+@permission_classes(
+    [
+        custom_permissions.IsAuthenticatedCurrentUserView
+    ]
+)
+def requests_detail_view(request,  pk_uuid, request_uuid):
+    serializer = BaseProfileSerializer
+    profile = get_object_or_404(Profile, pk_uuid=pk_uuid)
+    _request = get_object_or_404(FollowRequests, pk_uuid=request_uuid)
+    if _request.request_to == profile:
+        request_from = get_object_or_404(
+            Profile, pk_uuid=_request.request_from.pk_uuid)
+        data = {
+            'pk_uuid': _request.pk_uuid,
+            'request_from': serializer(request_from).data,
+            'request_to': serializer(profile).data,
+            'accepted': _request.accepted
+        }
+        return Response(
+            data=data,
+            status=status.HTTP_200_OK,
+        )
+    return Response(
+        data={},
+        status=status.HTTP_403_FORBIDDEN,
+    )
 
-#     if current_profile.follow_requests_received.filter(id=pk):
-#         current_profile.follow_requests_received.remove(
-#             profile_requesting_follow)
-#         return Response(
-#             data={'status': 'Follow request by @{} rejected.'.format(
-#                 profile_requesting_follow.user.username)},
-#             status=status.HTTP_200_OK)
 
-#     return Response(
-#         data={
-#             'error': 'Follow request not found'
-#         },
-#         status=status.HTTP_406_NOT_ACCEPTABLE)
+@api_view(['POST'])
+@permission_classes(
+    [
+        custom_permissions.IsAuthenticatedCurrentUserView
+    ]
+)
+def requests_accept_view(request,  pk_uuid, request_uuid):
+    serializer = BaseProfileSerializer
+    profile = get_object_or_404(Profile, pk_uuid=pk_uuid)
+    _request = get_object_or_404(FollowRequests, pk_uuid=request_uuid)
+    if _request.request_to == profile:
+        if _request.rejected is None:
+            request_from = get_object_or_404(
+                Profile, pk_uuid=_request.request_from.pk_uuid)
+            _request.accepted = timezone.now()
+            request_from.following.add(profile)
+            _request.save()
+            return Response(
+                data={},
+                status=status.HTTP_200_OK,
+            )
+    return Response(
+        data={},
+        status=status.HTTP_403_FORBIDDEN,
+    )
 
 
-# @action(
-#     detail=True,
-#     methods=['get']
-# )
-# def get_posts(self, request, pk):
-#     current_profile = self.request.user.profile
-
-#     is_authenticated = self.request.user.is_authenticated
-#     requested_profile = Profile.objects.get(pk=pk)
-#     is_following = bool(
-#         requested_profile.following.filter(
-#             id=current_profile.id).count())
-#     is_current_user = (int(pk) == current_profile.id) and is_authenticated
-
-#     if is_current_user or (requested_profile.is_private and is_following):
-#         raw_posts = requested_profile.posts.all()
-#         posts = PostSerializer(raw_posts, many=True).data
-#         return Response(
-#             data={'posts': posts},
-#             status=status.HTTP_200_OK)
-#     else:
-#         return Response(
-#             data={'error': 'profile is private'},
-#             status=status.HTTP_200_OK)
+@api_view(['POST'])
+@permission_classes(
+    [
+        custom_permissions.IsAuthenticatedCurrentUserView
+    ]
+)
+def requests_reject_view(request,  pk_uuid, request_uuid):
+    serializer = BaseProfileSerializer
+    profile = get_object_or_404(Profile, pk_uuid=pk_uuid)
+    _request = get_object_or_404(FollowRequests, pk_uuid=request_uuid)
+    if _request.request_to == profile:
+        if _request.accepted is None:
+            request_from = get_object_or_404(
+                Profile, pk_uuid=_request.request_from.pk_uuid)
+            _request.rejected = timezone.now()
+            _request.save()
+            return Response(
+                data={},
+                status=status.HTTP_200_OK,
+            )
+    return Response(
+        data={},
+        status=status.HTTP_403_FORBIDDEN,
+    )

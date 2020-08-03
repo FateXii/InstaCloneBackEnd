@@ -27,13 +27,14 @@ class Profile(models.Model):
 class FollowRequests(models.Model):
     pk_uuid = models.UUIDField(default=uuid.uuid4, null=False,
                                editable=False, unique=True)
-    request_by = models.ForeignKey(
+    request_from = models.ForeignKey(
         Profile, to_field='pk_uuid',
         on_delete=models.CASCADE,
-        related_name='sent_by')
-    request_to_follow = models.ForeignKey(
+        related_name='requests_sent')
+    request_to = models.ForeignKey(
         Profile, to_field='pk_uuid',
         on_delete=models.CASCADE,
-        related_name='sent_to')
+        related_name='requests_received')
     created = models.DateTimeField(auto_now_add=True)
     accepted = models.DateTimeField(blank=True, null=True)
+    rejected = models.DateTimeField(blank=True, null=True)

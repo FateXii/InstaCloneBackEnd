@@ -78,7 +78,7 @@ class BaseProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['pk_uuid',  'username', 'email', 'password',
+        fields = ['pk_uuid', 'user', 'username', 'email', 'password',
                   'first_name', 'last_name', 'bio', 'is_private',
                   'phone_number',
                   ]
@@ -217,7 +217,7 @@ class ProfileSerializer(BaseProfileSerializer):
 
     def get_follow_requests_sent(self, current_profile):
         requests = FollowRequests.objects.filter(
-            sent_by__id=current_profile.id)
+            requests_sent__id=current_profile.id)
 
         serialized_follow_request = BaseProfileSerializer(
             requests,
@@ -228,7 +228,7 @@ class ProfileSerializer(BaseProfileSerializer):
 
     def get_follow_requests_received(self, current_profile):
         requests = FollowRequests.objects.filter(
-            sent_to__id=current_profile.id)
+            requests_received__id=current_profile.id)
 
         serialized_follow_request = BaseProfileSerializer(
             requests,
