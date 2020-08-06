@@ -1,15 +1,17 @@
-# from django.contrib.auth.urls import urlpatterns
-# from django.db import transaction
-# from django.db.utils import IntegrityError
-# from django.urls import reverse
-# from userprofile.models import Profile
-# from rest_framework import status
-# from rest_framework.test import APITestCase
-# from django.core import exceptions
-# from posts.models import Post
-# from test_suite.tests.common import test_data
-# from test_suite.tests.common.test_methods import *
-# import json
+import json
+
+from django.contrib.auth.urls import urlpatterns
+from django.core import exceptions
+from django.db import transaction
+from django.db.utils import IntegrityError
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from posts.models import Post
+from test_suite.common import test_data
+from test_suite.common.test_methods import *
+from userprofile.models import Profile
 
 # PROFILES = test_data.profiles
 # POSTS = test_data.posts

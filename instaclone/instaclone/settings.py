@@ -57,7 +57,7 @@ INSTALLED_APPS = [
 
     # Custom Apps
     'test_suite',
-    # 'posts',
+    'posts',
     # 'comments',
     'userprofile',
 
@@ -182,8 +182,8 @@ STATIC_URL = '/static/'
 # CORS_ALLOW_CREDENTIALS = True
 
 CORS_ORIGIN_WHITELIST = [
-    # "http://127.0.0.1:3000",
-    # "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
     # "http://192.168.43.197:3000"
 
 ]

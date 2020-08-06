@@ -10,7 +10,7 @@ class IsUserWhoPosted(permissions.BasePermission):
         return request.user.profile == post.profile
 
 
-class PosterIsNotPrivateOrIsFollowing(permissions.BasePermission):
+class PosterIsNotPrivateOrUserIsFollowing(permissions.BasePermission):
     """
     Check if posted by private user
     """

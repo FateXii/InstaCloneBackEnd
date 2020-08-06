@@ -1,13 +1,14 @@
-from django.urls import reverse
-from rest_framework import status
-from rest_framework.test import APITestCase
-from django.core import exceptions
-from userprofile.models import Profile, FollowRequests
+import copy
+
 from django.contrib.auth.models import User
-from rest_framework import serializers
+from django.core import exceptions
+from django.urls import reverse
+from rest_framework import serializers, status
+from rest_framework.test import APITestCase
+
 from test_suite.common import test_data
 from test_suite.common.test_methods import *
-import copy
+from userprofile.models import FollowRequests, Profile
 
 TEST_PROFILES = test_data.profiles
 
