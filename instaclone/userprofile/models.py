@@ -17,7 +17,7 @@ class Profile(models.Model):
         related_name='profile')
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     country = CountryField(blank=True, null=True)
-    bio = models.CharField(max_length=255)
+    bio = models.CharField(max_length=255, blank=True, null=True)
     is_private = models.BooleanField(default=False)
     profiles_followed = models.ForeignKey(
         'self', to_field='pk_uuid', on_delete=models.DO_NOTHING,
